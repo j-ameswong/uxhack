@@ -7,11 +7,12 @@
 import { useRef, useState, useEffect } from 'react'
 import { GRID_COLS, GRID_ROWS } from '../game/constants.js'
 import { cn } from './ui/utils.js'
+import { FireBorder } from './FireBorder.jsx'
 
 /**
  * @param {{ gameState: { snake: Array, fields: Array }, className?: string, showSnake?: boolean, animateFields?: boolean }} props
  */
-export function GameBoard({ gameState, className, showSnake = true, animateFields = false }) {
+export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false }) {
   const boardRef = useRef(null)
   const [cellSize, setCellSize] = useState({ w: 0, h: 0 })
 
@@ -38,6 +39,9 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
       ref={boardRef}
       className={cn('relative w-full h-full overflow-hidden bg-background', className)}
     >
+      {/* Fire border */}
+      {showFireBorder && <FireBorder cellSize={cellSize} />}
+
       {/* Fields */}
       {fields.map((field) => {
         if (field.captured) return null

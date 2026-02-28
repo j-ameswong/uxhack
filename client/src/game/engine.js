@@ -72,11 +72,13 @@ export class GameEngine {
   }
 
   _isWallCollision(head) {
+    // Die one cell inward from the edge (the fire border occupies row/col 0
+    // and the last row/col)
     return (
-      head.col < 0 ||
-      head.col >= GRID_COLS ||
-      head.row < 0 ||
-      head.row >= GRID_ROWS
+      head.col < 1 ||
+      head.col >= GRID_COLS - 1 ||
+      head.row < 1 ||
+      head.row >= GRID_ROWS - 1
     );
   }
 

@@ -419,6 +419,7 @@ export function LoginPage() {
       {started && (
         <GameBoard
           gameState={gameState}
+          showFireBorder={true}
           className={cn(
             "absolute inset-0 transition-colors duration-150 z-10",
             isFlashing ? "bg-red-600/40" : penaltyFlash ? "bg-red-900/30" : "bg-transparent",
