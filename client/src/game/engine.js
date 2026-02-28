@@ -127,6 +127,14 @@ export class GameEngine {
       field.fleeStep(head);
     }
 
+    // Separation pass: nudge any two overlapping fields apart
+    for (let i = 0; i < this.fields.length; i++) {
+      for (let j = i + 1; j < this.fields.length; j++) {
+        this.fields[i].separateFrom(this.fields[j]);
+        this.fields[j].separateFrom(this.fields[i]);
+      }
+    }
+
     return { snake: [...this.snake], fields: this.fields, gameOver: false };
   }
 

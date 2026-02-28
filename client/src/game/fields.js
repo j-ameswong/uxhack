@@ -86,6 +86,37 @@ export class Field {
   }
 
   /**
+   * If this field overlaps `other`, nudge this field one cell away along the
+   * dominant axis. Called after fleeStep so stacked fields separate over time.
+   * @param {Field} other
+   */
+  separateFrom(other) {
+    if (this.captured || other.captured) return
+    const noOverlap =
+      this.col >= other.col + other.width ||
+      this.col + this.width <= other.col ||
+      this.row >= other.row + other.height ||
+      this.row + this.height <= other.row
+    if (noOverlap) return
+
+    const dCol = this.getCenter().col - other.getCenter().col
+    const dRow = this.getCenter().row - other.getCenter().row
+
+    let newCol = this.col
+    let newRow = this.row
+
+    if (Math.abs(dCol) >= Math.abs(dRow)) {
+      // Separate horizontally; if perfectly aligned default to moving right
+      newCol = dCol >= 0 ? this.col + 1 : this.col - 1
+    } else {
+      newRow = dRow >= 0 ? this.row + 1 : this.row - 1
+    }
+
+    this.col = Math.max(FIELD_MARGIN, Math.min(GRID_COLS - this.width - FIELD_MARGIN, newCol))
+    this.row = Math.max(FIELD_MARGIN, Math.min(GRID_ROWS - this.height - FIELD_MARGIN, newRow))
+  }
+
+  /**
    * Get the grid rect for collision/drawing: { col, row, width, height }
    */
   getRect() {

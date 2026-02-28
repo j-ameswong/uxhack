@@ -66,6 +66,7 @@ export function LoginPage() {
     stopGame()
     setTimeout(() => {
       setShowFailed(false)
+      setDeaths(0)
       resetGame()
       setTimerResetKey(k => k + 1)
       startGame()

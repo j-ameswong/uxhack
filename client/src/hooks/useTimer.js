@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 
-const COUNTDOWN_SECONDS = 60
+const COUNTDOWN_SECONDS = 30
 
 /**
  * Format remaining milliseconds as mm:ss (e.g. 01:00, 00:23)
