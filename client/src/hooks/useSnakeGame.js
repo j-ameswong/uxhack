@@ -65,11 +65,18 @@ export function useSnakeGame({ onComplete } = {}) {
     }, 1500)
   }, [engineRef, resetGame])
 
-  const { display: timerDisplay, elapsedMs } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
+  const { display: timerDisplay, elapsedMs, penalize } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
   elapsedMsRef.current = elapsedMs
+  const penalizeRef = useRef(penalize)
+  penalizeRef.current = penalize
+
+  const [penaltyFlash, setPenaltyFlash] = useState(false)
 
   const handleCharTyped = useCallback((char) => {
     engineRef.current?.growTail(char)
+    penalizeRef.current?.(1000) // deduct 1 second per character
+    setPenaltyFlash(true)
+    setTimeout(() => setPenaltyFlash(false), 200)
   }, [engineRef])
 
   const handleInputConfirm = useCallback(async (field, value) => {
@@ -165,6 +172,7 @@ export function useSnakeGame({ onComplete } = {}) {
     showFailed,
     timerDisplay,
     isFlashing,
+    penaltyFlash,
     beginGame,
     stopGame,
     handleInputConfirm,

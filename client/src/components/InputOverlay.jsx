@@ -60,6 +60,9 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, storedPa
       setError(null)
       onCancel?.()
     }
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      onCharTyped?.()
+    }
   }
 
   if (!field) return null

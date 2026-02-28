@@ -32,6 +32,7 @@ export function LoginPage() {
     showFailed,
     timerDisplay,
     isFlashing,
+    penaltyFlash,
     beginGame,
     handleInputConfirm,
     handleCharTyped,
@@ -167,16 +168,33 @@ export function LoginPage() {
             gameState={gameState}
             className={cn(
               "absolute inset-0 transition-colors duration-150 z-10",
-              isFlashing ? "bg-red-600/40" : "bg-transparent",
+              isFlashing ? "bg-red-600/40" : penaltyFlash ? "bg-red-900/30" : "bg-transparent",
             )}
           />
         )}
 
         {/* HUD */}
         {started && (
-          <div className="absolute top-4 right-4 z-20 flex gap-2">
-            <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: '#4ade80' }}>
-              {timerDisplay}
+          <div className="absolute top-4 right-4 z-20 flex gap-2 items-start">
+            <div className="relative">
+              <div className="pixel-bevel px-3 py-1.5 transition-colors duration-200" style={{
+                backgroundColor: penaltyFlash ? '#ef4444' : '#3b3b5c',
+                fontFamily: 'var(--font-pixel)',
+                fontSize: '0.625rem',
+                color: penaltyFlash ? '#ffffff' : '#4ade80',
+              }}>
+                {timerDisplay}
+              </div>
+              {penaltyFlash && (
+                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2" style={{
+                  fontFamily: 'var(--font-pixel)',
+                  fontSize: '0.5rem',
+                  color: '#ef4444',
+                  whiteSpace: 'nowrap',
+                }}>
+                  -1s
+                </div>
+              )}
             </div>
             <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: '#ef4444' }}>
               DEATHS: {deaths}

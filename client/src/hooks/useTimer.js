@@ -81,9 +81,21 @@ export function useTimer(isRunning, isPaused, onTimeUp, resetTrigger = 0) {
     return () => clearInterval(id)
   }, [isRunning, isPaused])
 
+  /** Deduct ms from the remaining time (shifts deadline earlier). */
+  function penalize(ms) {
+    if (endAtRef.current != null) {
+      endAtRef.current -= ms
+      // Immediately update displayed time (tick loop doesn't run while paused)
+      const now = pausedAtRef.current ?? Date.now()
+      const remaining = endAtRef.current - now + totalPausedRef.current
+      setRemainingMs(remaining)
+    }
+  }
+
   return {
     display: formatRemaining(remainingMs),
     isExpired: remainingMs <= 0,
     elapsedMs: Math.max(0, COUNTDOWN_SECONDS * 1000 - remainingMs),
+    penalize,
   }
 }
