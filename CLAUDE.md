@@ -154,24 +154,24 @@ Table: `submissions`
 
 ---
 
-### Stage 4 — Field Capture & Input Mode
+### Stage 4 — Field Capture & Input Mode ✅
 **Goal:** Snake head collision with a field triggers capture; snake freezes; user can type.
 
-- [ ] Add collision detection in `GameEngine.tick()` — compare snake head cell to each field's grid rect
-- [ ] On collision: mark field as `captured`, grow snake by one segment, trigger `onFieldCaptured(field)` callback
-- [ ] `onFieldCaptured` pauses the game loop (snake freezes, fields stop fleeing)
-- [ ] Create `client/src/components/InputOverlay.jsx`:
-  - [ ] Fixed HUD position (e.g. bottom-centre)
-  - [ ] Shows prompt: `"Enter your {field.label}:"`
-  - [ ] Controlled `<input>` element, auto-focused
-  - [ ] `Enter` key confirms; runs per-field validation:
+- [x] Add collision detection in `GameEngine.tick()` — compare snake head cell to each field's grid rect
+- [x] On collision: mark field as `captured`, grow snake by one segment, trigger `onFieldCaptured(field)` callback
+- [x] `onFieldCaptured` pauses the game loop (snake freezes, fields stop fleeing)
+- [x] Create `client/src/components/InputOverlay.jsx`:
+  - [x] Fixed HUD position (e.g. bottom-centre)
+  - [x] Shows prompt: `"Enter your {field.label}:"`
+  - [x] Controlled `<input>` element, auto-focused
+  - [x] `Enter` key confirms; runs per-field validation:
     - Name: non-empty
     - Email: basic regex (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`)
     - Password: min 8 characters
-  - [ ] On valid confirm: store value in game context, resume game loop
-  - [ ] On invalid: show inline error, do not resume
-- [ ] Tooltip: if user presses a letter key when no field is captured and game is active, show mocked tooltip
-- [ ] Verify: capture flow end-to-end, validation errors, game resumes correctly
+  - [x] On valid confirm: store value in game context, resume game loop
+  - [x] On invalid: show inline error, do not resume
+- [x] Tooltip: if user presses a letter key when no field is captured and game is active, show mocked tooltip
+- [x] Verify: capture flow end-to-end, validation errors, game resumes correctly
 
 ---
 

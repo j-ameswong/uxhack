@@ -13,32 +13,34 @@ import { TICK_RATE_MS } from '../game/constants.js'
 /**
  * @param {React.RefObject<HTMLCanvasElement>} canvasRef
  * @param {object} callbacks
- *   onDeath()         — called by engine on wall/self collision
- *   onTick(state)     — called by engine every tick
- *   onGrow()          — called on field capture (Stage 4)
- * @returns {{ engineRef, startGame, stopGame, resetGame }}
+ *   onDeath()              — called by engine on wall/self collision
+ *   onGrow()               — called on field capture (Stage 4)
+ *   onFieldCaptured(field) — called when snake captures a field; game pauses
+ * @returns {{ engineRef, startGame, stopGame, resetGame, resumeGame }}
  */
 export function useGameLoop(canvasRef, callbacks = {}) {
   const engineRef  = useRef(null)
+  const callbacksRef = useRef(callbacks)
+  callbacksRef.current = callbacks
 
-  // ── Engine callbacks (stable refs to avoid re-mounting) ──
+  // ── Engine callbacks (stable refs) ──
   const onDeath = useCallback(() => {
-    if (callbacks.onDeath) callbacks.onDeath()
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+    callbacksRef.current.onDeath?.()
+  }, [])
 
-  const onGrow = useCallback(() => {
-    if (callbacks.onGrow) callbacks.onGrow()
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  const onFieldCaptured = useCallback((field) => {
+    callbacksRef.current.onFieldCaptured?.(field)
+  }, [])
 
   // ── Mount engine once ─────────────────────────────────────
   useEffect(() => {
-    engineRef.current = new GameEngine({ onDeath, onGrow })
+    engineRef.current = new GameEngine({ onDeath, onFieldCaptured })
 
     return () => {
       engineRef.current.stop()
       engineRef.current = null
     }
-  }, [onDeath, onGrow])
+  }, [onDeath, onFieldCaptured])
 
   // ── Canvas resize observer ────────────────────────────────
   useEffect(() => {
@@ -48,6 +50,14 @@ export function useGameLoop(canvasRef, callbacks = {}) {
     function resize() {
       canvas.width  = canvas.offsetWidth
       canvas.height = canvas.offsetHeight
+      // Setting width/height clears the canvas — redraw when paused (e.g. after field capture)
+      if (engineRef.current && !engineRef.current.intervalId) {
+        const ctx = canvas.getContext('2d')
+        const state = engineRef.current.getState()
+        if (state?.snake?.length) {
+          draw(ctx, state, canvas.width, canvas.height)
+        }
+      }
     }
 
     resize()
@@ -56,13 +66,19 @@ export function useGameLoop(canvasRef, callbacks = {}) {
     return () => ro.disconnect()
   }, [canvasRef])
 
+  const getDimensions = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return { width: 0, height: 0 }
+    return { width: canvas.width || canvas.offsetWidth, height: canvas.height || canvas.offsetHeight }
+  }, [canvasRef])
+
   // ── Exposed controls ──────────────────────────────────────
   const startGame = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas || !engineRef.current) return
     const ctx = canvas.getContext('2d')
-    engineRef.current.start(ctx, null, draw, TICK_RATE_MS)
-  }, [canvasRef])
+    engineRef.current.start(ctx, getDimensions, draw, TICK_RATE_MS)
+  }, [canvasRef, getDimensions])
 
   const stopGame = useCallback(() => {
     engineRef.current?.stop()
@@ -74,8 +90,16 @@ export function useGameLoop(canvasRef, callbacks = {}) {
     engineRef.current.stop()
     engineRef.current._resetSnake()
     const ctx = canvas.getContext('2d')
-    engineRef.current.start(ctx, null, draw, TICK_RATE_MS)
-  }, [canvasRef])
+    engineRef.current.start(ctx, getDimensions, draw, TICK_RATE_MS)
+  }, [canvasRef, getDimensions])
 
-  return { engineRef, startGame, stopGame, resetGame }
+  // Resume after field capture (same as start — restarts the tick loop)
+  const resumeGame = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas || !engineRef.current) return
+    const ctx = canvas.getContext('2d')
+    engineRef.current.start(ctx, getDimensions, draw, TICK_RATE_MS)
+  }, [canvasRef, getDimensions])
+
+  return { engineRef, startGame, stopGame, resetGame, resumeGame }
 }

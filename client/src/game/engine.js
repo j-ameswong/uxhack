@@ -16,8 +16,9 @@ const OPPOSITES = {
 };
 
 export class GameEngine {
-  constructor({ onDeath }) {
+  constructor({ onDeath, onFieldCaptured }) {
     this.onDeath = onDeath ?? (() => {});
+    this.onFieldCaptured = onFieldCaptured ?? (() => {});
     this.snake = [];
     this.direction = 'right';
     this.nextDirection = null;
@@ -78,6 +79,18 @@ export class GameEngine {
     );
   }
 
+  /** Check if head overlaps any uncaptured field's grid rect */
+  _getCapturedField(head) {
+    for (const field of this.fields) {
+      if (field.captured) continue;
+      const r = field.getRect();
+      const inCol = head.col >= r.col && head.col < r.col + r.width;
+      const inRow = head.row >= r.row && head.row < r.row + r.height;
+      if (inCol && inRow) return field;
+    }
+    return null;
+  }
+
   tick(ctx, width, height) {
     this._applyQueuedDirection();
     const newHead = this._advanceHead();
@@ -91,14 +104,19 @@ export class GameEngine {
     this.snake.push(newHead);
     this.tickCount += 1;
 
-    // Only grow when consuming a field (Stage 4). Until then, always remove tail.
-    const consumed = false; // TODO: set true on field capture
-    if (!consumed) {
+    const head = this.snake[this.snake.length - 1];
+    const capturedField = this._getCapturedField(head);
+
+    if (capturedField) {
+      // Stage 4: capture field, grow snake, trigger callback, pause
+      capturedField.captured = true;
+      this.onFieldCaptured(capturedField);
+      this.stop(); // Pause game loop — resume when user confirms input
+    } else {
       this.snake.shift();
     }
 
-    // Flee AI: each field moves away from snake head if within FLEE_RADIUS
-    const head = this.snake[this.snake.length - 1];
+    // Flee AI: uncaptured fields move away from snake head
     for (const field of this.fields) {
       field.fleeStep(head);
     }

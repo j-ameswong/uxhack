@@ -28,6 +28,7 @@ export class Field {
     this.label = label
     this.width = FIELD_WIDTH
     this.height = FIELD_HEIGHT
+    this.captured = false  // Stage 4: set true when snake eats this field
   }
 
   /**
@@ -58,6 +59,7 @@ export class Field {
    * @param {{ col: number, row: number }} snakeHeadPos - Snake head grid position
    */
   fleeStep(snakeHeadPos) {
+    if (this.captured) return  // Don't flee when already captured
     const dist = this._distanceTo(snakeHeadPos)
     if (dist > FLEE_RADIUS) return
 

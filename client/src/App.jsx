@@ -1,35 +1,56 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useGameLoop } from './hooks/useGameLoop.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
+import { LoginPage } from './components/LoginPage.jsx'
+import { InputOverlay } from './components/InputOverlay.jsx'
+import { GameProvider, useGameContext } from './context/GameContext.jsx'
 
-// ── Game Page ─────────────────────────────────────────────────
+// ── Game Page (direct play) ─────────────────────────────────────
 
 function GamePage() {
   const canvasRef  = useRef(null)
   const [deaths, setDeaths]   = useState(0)
   const [isAlive, setIsAlive] = useState(true)
   const [started, setStarted] = useState(false)
+  const [capturedField, setCapturedField] = useState(null)
+  const [showTooltip, setShowTooltip] = useState(false)
+  const { setFieldValue } = useGameContext()
 
-  // ── Engine callbacks ────────────────────────────────────
   const handleDeath = useCallback(() => {
     setIsAlive(false)
     setDeaths(d => d + 1)
-
-    // Auto-reset after a short death flash
+    setCapturedField(null)
     setTimeout(() => {
       resetGame()
       setIsAlive(true)
     }, 800)
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Mount game loop ──────────────────────────────────────
-  const { engineRef, startGame, resetGame } = useGameLoop(canvasRef, {
+  const handleFieldCaptured = useCallback((field) => {
+    setCapturedField(field)
+  }, [])
+
+  const { engineRef, startGame, resetGame, resumeGame } = useGameLoop(canvasRef, {
     onDeath: handleDeath,
+    onFieldCaptured: handleFieldCaptured,
   })
 
-  // ── Keyboard capture (active when game started) ──────────
-  useKeyboard(engineRef, started)
+  const handleInputConfirm = useCallback((field, value) => {
+    setFieldValue(field.label, value)
+    setCapturedField(null)
+    resumeGame()
+  }, [setFieldValue, resumeGame])
+
+  useKeyboard(engineRef, started, {
+    onLetterKey: () => setShowTooltip(true),
+  })
+
+  useEffect(() => {
+    if (!showTooltip) return
+    const t = setTimeout(() => setShowTooltip(false), 2000)
+    return () => clearTimeout(t)
+  }, [showTooltip])
 
   // ── Start on first interaction ────────────────────────────
   function handleStart() {
@@ -107,16 +128,24 @@ function GamePage() {
         </div>
       )}
 
-      {/* Stage label */}
-      {started && (
+      {/* Stage 4: Input overlay when field captured */}
+      <InputOverlay
+        field={capturedField}
+        onConfirm={handleInputConfirm}
+      />
+
+      {/* Tooltip: letter key pressed */}
+      {showTooltip && started && !capturedField && (
         <div
-          className="absolute bottom-4 left-4 z-10 text-xs"
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded text-sm"
           style={{
-            color: '#333',
+            color: '#39ff14',
             fontFamily: 'Courier New, monospace',
+            background: 'rgba(0,0,0,0.8)',
+            border: '1px solid #1a4a0a',
           }}
         >
-          Stage 2 — Snake Engine ✓ · Fields coming next
+          Use arrow keys or WASD to move! Chase the fields to fill them in.
         </div>
       )}
     </div>
@@ -140,11 +169,14 @@ function LeaderboardPage() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/"            element={<GamePage />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
-      </Routes>
-    </BrowserRouter>
+    <GameProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/"            element={<LoginPage />} />
+          <Route path="/game"        element={<GamePage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+        </Routes>
+      </BrowserRouter>
+    </GameProvider>
   )
 }

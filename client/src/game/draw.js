@@ -9,8 +9,9 @@ export function draw(ctx, state, width, height) {
 
   const { snake, fields = [] } = state;
 
-  // Draw fields first (behind snake) — Stage 3
+  // Draw fields first (behind snake) — Stage 3; skip captured (Stage 4)
   for (const field of fields) {
+    if (field.captured) continue
     const rect = field.getRect ? field.getRect() : field;
     const x = rect.col * cellWidth + 1;
     const y = rect.row * cellHeight + 1;

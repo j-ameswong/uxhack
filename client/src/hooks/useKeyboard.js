@@ -19,12 +19,21 @@ const KEY_MAP = {
 
 const ARROW_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'])
 
-export function useKeyboard(engineRef, isActive) {
+/** Letter/number keys that trigger the "use arrow keys" tooltip */
+const TYPING_KEYS = /^[a-zA-Z0-9]$/
+
+/**
+ * @param {React.RefObject} engineRef
+ * @param {boolean} isActive
+ * @param {{ onLetterKey?: () => void }} options - onLetterKey called when user presses a letter key (tooltip)
+ */
+export function useKeyboard(engineRef, isActive, options = {}) {
+  const { onLetterKey } = options
+
   useEffect(() => {
     if (!isActive) return
 
     function handleKeyDown(e) {
-      // Always prevent arrow key scrolling when game is active
       if (ARROW_KEYS.has(e.code)) {
         e.preventDefault()
       }
@@ -32,10 +41,12 @@ export function useKeyboard(engineRef, isActive) {
       const dir = KEY_MAP[e.code] || KEY_MAP[e.key]
       if (dir && engineRef.current) {
         engineRef.current.setDirection(dir)
+      } else if (TYPING_KEYS.test(e.key) && onLetterKey) {
+        onLetterKey()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [engineRef, isActive])
+  }, [engineRef, isActive, onLetterKey])
 }
