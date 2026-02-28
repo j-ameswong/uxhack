@@ -10,8 +10,8 @@ import { GRID_COLS, GRID_ROWS, FLEE_RADIUS } from './constants.js'
 const FIELD_MARGIN = 2
 
 /** Default field size in grid cells (cols × rows) */
-const FIELD_WIDTH = 2
-const FIELD_HEIGHT = 1
+const FIELD_WIDTH = 5
+const FIELD_HEIGHT = 2
 
 /**
  * Field — a form field entity on the grid that flees from the snake.

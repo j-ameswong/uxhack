@@ -97,6 +97,7 @@ export function useSnakeGame({ onComplete } = {}) {
         if (res.ok) {
           const data = await res.json()
           rank = data.rank
+          snapshot.id = data.id
         } else {
           submitError = true
         }

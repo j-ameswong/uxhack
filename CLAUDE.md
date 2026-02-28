@@ -207,21 +207,21 @@ Table: `submissions`
 
 ---
 
-### Stage 6 — Leaderboard Endpoint & Modal
+### Stage 6 — Leaderboard Endpoint & Modal ✅
 **Goal:** Top-10 leaderboard accessible on completion screen and at `/leaderboard` route.
 
-- [ ] **Server — `server/routes/leaderboard.js`:**
-  - [ ] `GET /api/leaderboard` returns top 10 rows ordered `time_ms ASC, deaths ASC`
-  - [ ] Add `rank` field to each row in response
-- [ ] **Client — `client/src/components/LeaderboardModal.jsx`:**
-  - [ ] `GET /api/leaderboard` on mount
-  - [ ] Render ranked table: `rank | name | time | deaths`
-  - [ ] Highlight the current user's row (matched by `id` from submit response)
-  - [ ] Show user's own rank even if not in top 10 (append below table with separator)
-- [ ] **Client — `/leaderboard` route:**
-  - [ ] Standalone page rendering `<LeaderboardModal>` without playing the game
-  - [ ] Use React Router (or Vite file-based routing) for `/leaderboard`
-- [ ] Verify: leaderboard populates correctly, current user highlighted, `/leaderboard` route works standalone
+- [x] **Server — `server/routes/leaderboard.js`:**
+  - [x] `GET /api/leaderboard` returns top 10 rows ordered `time_ms ASC, deaths ASC`
+  - [x] Add `rank` field to each row in response
+- [x] **Client — `client/src/components/LeaderboardModal.jsx`:**
+  - [x] `GET /api/leaderboard` on mount
+  - [x] Render ranked table: `rank | name | time | deaths`
+  - [x] Highlight the current user's row (matched by `id` from submit response)
+  - [x] Show user's own rank even if not in top 10 (append below table with separator)
+- [x] **Client — `/leaderboard` route:**
+  - [x] Standalone page rendering `<LeaderboardModal>` without playing the game
+  - [x] React Router `/leaderboard` route
+- [x] Verify: leaderboard populates correctly, current user highlighted, `/leaderboard` route works standalone
 
 ---
 

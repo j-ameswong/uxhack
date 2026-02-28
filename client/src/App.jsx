@@ -8,6 +8,7 @@ import { GameProvider } from './context/GameContext.jsx'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from './components/ui/card.jsx'
 import { Button } from './components/ui/button.jsx'
 import { Badge } from './components/ui/badge.jsx'
+import { LeaderboardModal } from './components/LeaderboardModal.jsx'
 
 // ── Game Page ────────────────────────────────────────────────
 
@@ -117,7 +118,7 @@ function GamePage() {
 function SuccessPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { rank, deaths, timeMs, submitError } = location.state ?? {}
+  const { rank, id, deaths, timeMs, submitError } = location.state ?? {}
 
   function formatTime(ms) {
     if (ms == null) return '--:--'
@@ -137,7 +138,7 @@ function SuccessPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
       </div>
 
-      <Card className="relative max-w-md w-full backdrop-blur-sm bg-white/80 shadow-2xl border-0 text-center">
+      <Card className="relative max-w-lg w-full backdrop-blur-sm bg-white/80 shadow-2xl border-0 text-center">
         <CardHeader>
           <div className="text-6xl mb-2">🎉</div>
           <CardTitle className="text-3xl">You signed up!</CardTitle>
@@ -168,6 +169,9 @@ function SuccessPage() {
               Couldn&apos;t save your score — server unavailable.
             </p>
           )}
+          {!submitError && (
+            <LeaderboardModal currentId={id} currentRank={rank} />
+          )}
         </CardContent>
         <CardFooter className="justify-center">
           <Button onClick={() => navigate('/game')} size="lg" className="cursor-pointer">
@@ -182,14 +186,15 @@ function SuccessPage() {
 // ── Leaderboard placeholder ──────────────────────────────────
 
 function LeaderboardPage() {
+  const navigate = useNavigate()
   return (
-    <div className="flex items-center justify-center h-screen bg-background">
-      <Card className="max-w-sm w-[90%] text-center">
-        <CardHeader>
-          <CardTitle className="text-3xl font-mono">Leaderboard</CardTitle>
-          <CardDescription>Coming soon — Stage 6</CardDescription>
-        </CardHeader>
-      </Card>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6 gap-4">
+      <div className="w-full max-w-md">
+        <LeaderboardModal />
+      </div>
+      <Button variant="outline" onClick={() => navigate('/')} className="cursor-pointer">
+        Back
+      </Button>
     </div>
   )
 }
