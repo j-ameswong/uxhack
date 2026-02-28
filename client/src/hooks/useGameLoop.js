@@ -93,12 +93,12 @@ export function useGameLoop(canvasRef, callbacks = {}) {
     engineRef.current.start(ctx, getDimensions, draw, TICK_RATE_MS)
   }, [canvasRef, getDimensions])
 
-  // Resume after field capture (same as start — restarts the tick loop)
+  // Resume after field capture — use engine's current (possibly faster) tick rate
   const resumeGame = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas || !engineRef.current) return
     const ctx = canvas.getContext('2d')
-    engineRef.current.start(ctx, getDimensions, draw, TICK_RATE_MS)
+    engineRef.current.start(ctx, getDimensions, draw, engineRef.current.tickRateMs)
   }, [canvasRef, getDimensions])
 
   return { engineRef, startGame, stopGame, resetGame, resumeGame }

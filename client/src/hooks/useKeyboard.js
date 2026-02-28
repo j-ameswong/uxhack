@@ -34,6 +34,9 @@ export function useKeyboard(engineRef, isActive, options = {}) {
     if (!isActive) return
 
     function handleKeyDown(e) {
+      const tag = e.target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
       if (ARROW_KEYS.has(e.code)) {
         e.preventDefault()
       }

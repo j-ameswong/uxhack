@@ -6,7 +6,8 @@
 export const GRID_COLS       = 40      // logical grid width
 export const GRID_ROWS       = 30      // logical grid height
 
-export const TICK_RATE_MS    = 150     // ms per snake tick
+export const TICK_RATE_MS    = 150     // ms per snake tick (initial)
+export const TICK_RATE_INCREASE_MS = 45 // ms faster per captured field
 export const FLEE_RADIUS     = 8      // cells — flee AI activation distance
 export const SCATTER_DELAY_MS = 1500  // ms before fields scatter on load
 

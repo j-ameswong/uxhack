@@ -1,4 +1,4 @@
-import { GRID_COLS, GRID_ROWS } from './constants.js';
+import { GRID_COLS, GRID_ROWS, TICK_RATE_MS, TICK_RATE_INCREASE_MS } from './constants.js';
 import { createInitialFields } from './fields.js';
 
 const DIRECTIONS = {
@@ -24,6 +24,8 @@ export class GameEngine {
     this.nextDirection = null;
     this.intervalId = null;
     this.tickCount = 0;
+    this.capturedCount = 0;
+    this.tickRateMs = TICK_RATE_MS;
     this.fields = createInitialFields();
     this._resetSnake();
   }
@@ -38,6 +40,8 @@ export class GameEngine {
     ];
     this.direction = 'right';
     this.nextDirection = null;
+    this.capturedCount = 0;
+    this.tickRateMs = TICK_RATE_MS;
     // Scatter fields to new random positions on death (Stage 3+)
     this.fields = createInitialFields();
   }
@@ -110,6 +114,8 @@ export class GameEngine {
     if (capturedField) {
       // Stage 4: capture field, grow snake, trigger callback, pause
       capturedField.captured = true;
+      this.capturedCount += 1;
+      this.tickRateMs = Math.max(50, TICK_RATE_MS - this.capturedCount * TICK_RATE_INCREASE_MS);
       this.onFieldCaptured(capturedField);
       this.stop(); // Pause game loop — resume when user confirms input
     } else {
