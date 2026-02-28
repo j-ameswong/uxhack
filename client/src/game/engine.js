@@ -86,10 +86,10 @@ export class GameEngine {
     );
   }
 
-  /** Check if head overlaps any uncaptured field's grid rect */
+  /** Check if head overlaps any uncaptured, unlocked field's grid rect */
   _getCapturedField(head) {
     for (const field of this.fields) {
-      if (field.captured) continue;
+      if (field.captured || field.locked) continue;
       const r = field.getRect();
       const inCol = head.col >= r.col && head.col < r.col + r.width;
       const inRow = head.row >= r.row && head.row < r.row + r.height;
@@ -132,8 +132,9 @@ export class GameEngine {
     }
 
     // DVD bounce: fields drift diagonally and bounce off walls
+    const snakeHead = this.snake[this.snake.length - 1];
     for (const field of this.fields) {
-      field.bounceStep();
+      field.bounceStep(snakeHead);
     }
 
     // Separation pass: nudge any two overlapping fields apart

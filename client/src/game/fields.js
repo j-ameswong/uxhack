@@ -21,6 +21,12 @@ const FIELD_HEIGHT = 5
  * @property {number} width - Width in cells
  * @property {number} height - Height in cells
  */
+/** Distance at which a locked field starts fleeing aggressively from the snake */
+const LOCK_FLEE_RADIUS = 15
+
+/** How many cells a locked field jumps per tick when the snake is near */
+const LOCK_FLEE_SPEED = 4
+
 export class Field {
   constructor({ col, row, label }) {
     this.col = col
@@ -29,6 +35,7 @@ export class Field {
     this.width = FIELD_WIDTH
     this.height = FIELD_HEIGHT
     this.captured = false  // Stage 4: set true when snake eats this field
+    this.locked = false    // When true, field cannot be captured and flees aggressively
     // DVD screensaver bounce: random diagonal velocity
     this.dCol = Math.random() < 0.5 ? -1 : 1
     this.dRow = Math.random() < 0.5 ? -1 : 1
@@ -46,14 +53,34 @@ export class Field {
 
   /**
    * DVD screensaver bounce: move diagonally each tick, bounce off walls.
+   * If `snakeHead` is provided and this field is locked, flee aggressively.
    */
-  bounceStep() {
+  bounceStep(snakeHead) {
     if (this.captured) return
 
     const minCol = FIELD_MARGIN
     const maxCol = GRID_COLS - this.width - FIELD_MARGIN
     const minRow = FIELD_MARGIN
     const maxRow = GRID_ROWS - this.height - FIELD_MARGIN
+
+    // Locked fields flee aggressively when snake is nearby
+    if (this.locked && snakeHead) {
+      const center = this.getCenter()
+      const dx = center.col - snakeHead.col
+      const dy = center.row - snakeHead.row
+      const dist = Math.sqrt(dx * dx + dy * dy)
+
+      if (dist < LOCK_FLEE_RADIUS && dist > 0) {
+        // Flee along the vector away from the snake head
+        const nx = dx / dist
+        const ny = dy / dist
+        const newCol = Math.max(minCol, Math.min(maxCol, Math.round(this.col + nx * LOCK_FLEE_SPEED)))
+        const newRow = Math.max(minRow, Math.min(maxRow, Math.round(this.row + ny * LOCK_FLEE_SPEED)))
+        this.col = newCol
+        this.row = newRow
+        return
+      }
+    }
 
     let newCol = this.col + this.dCol
     let newRow = this.row + this.dRow
@@ -160,7 +187,9 @@ export function createInitialFields() {
       Math.abs(row + FIELD_HEIGHT / 2 - centerRow) < avoidRadius
     )
 
-    fields.push(new Field({ col, row, label }))
+    const field = new Field({ col, row, label })
+    if (label === 'Password') field.locked = true
+    fields.push(field)
   }
 
   return fields
@@ -178,7 +207,9 @@ export function createFormPositionFields() {
   const labels = ['Name', 'Email', 'Password']
   return labels.map((label, i) => {
     const row = centerRow - spacing + (i * spacing)
-    return new Field({ col: centerCol, row, label })
+    const field = new Field({ col: centerCol, row, label })
+    if (label === 'Password') field.locked = true
+    return field
   })
 }
 

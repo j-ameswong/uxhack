@@ -106,6 +106,12 @@ export function useSnakeGame({ onComplete } = {}) {
 
     if (field.label !== 'Verify Password') {
       confirmedCountRef.current += 1
+
+      // Unlock Password field once Name and Email are both captured
+      if (confirmedCountRef.current >= 2) {
+        const pwField = engineRef.current?.fields.find(f => f.label === 'Password' && !f.captured)
+        if (pwField) pwField.locked = false
+      }
     }
 
     if (confirmedCountRef.current >= 3 && field.label !== 'Verify Password') {
