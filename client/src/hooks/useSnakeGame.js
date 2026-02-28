@@ -23,6 +23,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const [timerResetKey, setTimerResetKey] = useState(0)
   const [isFlashing, setIsFlashing] = useState(false)
   const [scattering, setScattering] = useState(false)
+  const [cardFading, setCardFading] = useState(false)
   const [deathCountdown, setDeathCountdown] = useState(null)
   const { setFieldValue, getFieldValue } = useGameContext()
 
@@ -158,25 +159,40 @@ export function useSnakeGame({ onComplete } = {}) {
     return () => clearTimeout(t)
   }, [showTooltip])
 
+  const CARD_FADE_MS = 600   // card fades out over this duration
+  const BLOB_LINGER_MS = 1500 // blobs stay visible after card is gone
+
   const beginGame = useCallback(() => {
-    // Phase 1: show GameBoard with fields at form positions, then rapid shuffle
-    setScattering(true)
-    // Start rapid scatter interval after first frame (so form positions render)
-    const SHUFFLE_INTERVAL = 500 // ms between each shuffle
-    let intervalId
-    requestAnimationFrame(() => {
-      engineRef.current?.scatterFields()
-      intervalId = setInterval(() => {
-        engineRef.current?.scatterFields()
-      }, SHUFFLE_INTERVAL)
-    })
-    // Phase 2: stop shuffling, settle on final positions, start game
+    // Phase 1: fade out the card, keep blobs visible
+    setCardFading(true)
+
+    // Phase 2: after card gone + blob linger, transition to game world
     setTimeout(() => {
-      clearInterval(intervalId)
-      setScattering(false)
-      setStarted(true)
-      startGame()
-    }, SCATTER_DELAY_MS)
+      setCardFading(false)
+      setScattering(true)
+      // Rapid shuffle of field positions
+      const SHUFFLE_INTERVAL = 500
+      let intervalId
+      requestAnimationFrame(() => {
+        engineRef.current?.scatterFields()
+        intervalId = setInterval(() => {
+          engineRef.current?.scatterFields()
+        }, SHUFFLE_INTERVAL)
+      })
+      // Phase 3: stop shuffling, countdown, then start
+      setTimeout(() => {
+        clearInterval(intervalId)
+        setScattering(false)
+        setStarted(true)
+        setDeathCountdown(3)
+        setTimeout(() => setDeathCountdown(2), 1000)
+        setTimeout(() => setDeathCountdown(1), 2000)
+        setTimeout(() => {
+          setDeathCountdown(null)
+          startGame()
+        }, 3000)
+      }, SCATTER_DELAY_MS)
+    }, CARD_FADE_MS + BLOB_LINGER_MS)
   }, [startGame, engineRef])
 
   return {
@@ -185,6 +201,7 @@ export function useSnakeGame({ onComplete } = {}) {
     deaths,
     started,
     scattering,
+    cardFading,
     deathCountdown,
     capturedField,
     showTooltip,
