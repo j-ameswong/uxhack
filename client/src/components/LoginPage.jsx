@@ -3,17 +3,18 @@
 //  Pixel-art styled login form. Typing in password starts the snake game.
 // ============================================================
 
-import { useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnakeGame } from "../hooks/useSnakeGame.js";
 import { GameBoard } from "./GameBoard.jsx";
 import { InputOverlay } from "./InputOverlay.jsx";
 import { cn } from "./ui/utils.js";
-import { Badge } from "./ui/badge.jsx";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const passwordRef = useRef(null);
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPassword, setFormPassword] = useState("");
 
   const onComplete = useCallback(
     (result) => {
@@ -41,18 +42,15 @@ export function LoginPage() {
     getFieldValue,
   } = useSnakeGame({ onComplete });
 
-  function handlePasswordKeyDown(e) {
-    if (started) return;
-    const isTypingKey =
-      e.key.length === 1 ||
-      e.key === "Backspace" ||
-      e.key === "Delete" ||
-      e.key === "Enter";
-    if (isTypingKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      beginGame();
-    }
+  const nameValid = formName.trim().length > 0;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim());
+  const passwordValid = formPassword.length >= 1;
+  const canSubmit = nameValid && emailValid && passwordValid;
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!canSubmit || started) return;
+    beginGame();
   }
 
     return (
@@ -96,7 +94,7 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-5">
+              <form className="p-6 space-y-5" onSubmit={handleSubmit}>
                 <p className="text-center text-xs" style={{ fontFamily: 'var(--font-pixel)', color: '#9090b0' }}>
                   Fill in the form to sign up
                 </p>
@@ -108,58 +106,62 @@ export function LoginPage() {
                     <input
                       type="text"
                       placeholder="Your name"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
                       className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
                       style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}
+                      autoFocus
                     />
                   </div>
                 </div>
 
                 {/* Email field */}
-                <div className="space-y-2">
+                <div className="space-y-2" style={{ opacity: nameValid ? 1 : 0.35 }}>
                   <label className="text-xs text-primary block" style={{ fontFamily: 'var(--font-pixel)' }}>Email</label>
                   <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
                     <input
                       type="email"
                       placeholder="you@example.com"
-                      className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      disabled={!nameValid}
+                      className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed"
                       style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}
                     />
                   </div>
                 </div>
 
                 {/* Password field */}
-                <div className="space-y-2">
+                <div className="space-y-2" style={{ opacity: emailValid ? 1 : 0.35 }}>
                   <label className="text-xs text-primary block" style={{ fontFamily: 'var(--font-pixel)' }}>Password</label>
                   <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
                     <input
-                      ref={passwordRef}
                       type="password"
                       placeholder="••••••••"
-                      className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                      value={formPassword}
+                      onChange={(e) => setFormPassword(e.target.value)}
+                      disabled={!emailValid}
+                      className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed"
                       style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}
-                      onKeyDown={handlePasswordKeyDown}
-                      onFocus={(e) => { e.target.placeholder = "Try typing..."; }}
-                      onBlur={(e) => { e.target.placeholder = "••••••••"; }}
                     />
                   </div>
-                  <p className="text-muted-foreground" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem' }}>
-                    Go ahead, type your password...
-                  </p>
                 </div>
 
                 {/* Sign up button */}
                 <button
-                  type="button"
-                  className="w-full py-2 px-4 pixel-bevel cursor-pointer text-xs font-bold"
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="w-full py-2 px-4 pixel-bevel cursor-pointer text-xs font-bold disabled:cursor-not-allowed"
                   style={{
                     fontFamily: 'var(--font-pixel)',
-                    backgroundColor: '#4ade80',
-                    color: '#1a1a2e',
+                    backgroundColor: canSubmit ? '#4ade80' : '#3b3b5c',
+                    color: canSubmit ? '#1a1a2e' : '#6a6a8a',
+                    opacity: canSubmit ? 1 : 0.5,
                   }}
                 >
                   SIGN UP
                 </button>
-              </div>
+              </form>
             </div>
           </div>
         )}
