@@ -16,9 +16,10 @@ const OPPOSITES = {
 };
 
 export class GameEngine {
-  constructor({ onDeath, onFieldCaptured }) {
+  constructor({ onDeath, onFieldCaptured, onTick }) {
     this.onDeath = onDeath ?? (() => {});
     this.onFieldCaptured = onFieldCaptured ?? (() => {});
+    this.onTick = onTick ?? (() => {});
     this.snake = [];
     this.direction = 'right';
     this.nextDirection = null;
@@ -95,14 +96,16 @@ export class GameEngine {
     return null;
   }
 
-  tick(ctx, width, height) {
+  tick() {
     this._applyQueuedDirection();
     const newHead = this._advanceHead();
 
     if (this._isWallCollision(newHead) || this._isSelfCollision(newHead)) {
       this.onDeath();
       this._resetSnake();
-      return { snake: [...this.snake], fields: this.fields, gameOver: true };
+      const state = { snake: [...this.snake], fields: this.fields, gameOver: true };
+      this.onTick(state);
+      return state;
     }
 
     this.snake.push(newHead);
@@ -135,7 +138,9 @@ export class GameEngine {
       }
     }
 
-    return { snake: [...this.snake], fields: this.fields, gameOver: false };
+    const state = { snake: [...this.snake], fields: this.fields, gameOver: false };
+    this.onTick(state);
+    return state;
   }
 
   /** Spawn the verify-password field after all 3 main fields are confirmed. */
@@ -147,23 +152,12 @@ export class GameEngine {
     return { snake: [...this.snake], direction: this.direction, fields: this.fields };
   }
 
-  getDimensions() {
-    if (!this._ctx) return { width: 0, height: 0 };
-    return { width: this._ctx.canvas.width, height: this._ctx.canvas.height };
-  }
-
-  start(ctx, getDimensions, draw, tickRateMs) {
+  start(tickRateMs) {
     if (this.intervalId) return;
-    this._ctx = ctx;
-    this._draw = draw;
-    const getSize = getDimensions ?? (() => this.getDimensions());
-    const tick = () => {
-      const { width, height } = getSize();
-      const result = this.tick(ctx, width, height);
-      draw(ctx, result, width, height);
-    };
+    const rate = tickRateMs ?? this.tickRateMs;
+    const tick = () => this.tick();
     tick();
-    this.intervalId = setInterval(tick, tickRateMs);
+    this.intervalId = setInterval(tick, rate);
   }
 
   stop() {

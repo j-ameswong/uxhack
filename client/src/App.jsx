@@ -1,362 +1,204 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { useGameLoop } from './hooks/useGameLoop.js'
-import { VERIFY_TICK_RATE_MS } from './game/constants.js'
-import { useKeyboard } from './hooks/useKeyboard.js'
-import { useTimer } from './hooks/useTimer.js'
+import { useSnakeGame } from './hooks/useSnakeGame.js'
 import { LoginPage } from './components/LoginPage.jsx'
 import { InputOverlay } from './components/InputOverlay.jsx'
-import { GameProvider, useGameContext } from './context/GameContext.jsx'
+import { GameBoard } from './components/GameBoard.jsx'
+import { GameProvider } from './context/GameContext.jsx'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from './components/ui/card.jsx'
+import { Button } from './components/ui/button.jsx'
+import { Badge } from './components/ui/badge.jsx'
 
 // ── Game Page ────────────────────────────────────────────────
 
 function GamePage() {
-  const canvasRef  = useRef(null)
-  const navigate   = useNavigate()
-  const [deaths, setDeaths]             = useState(0)
-  const [isAlive, setIsAlive]           = useState(true)
-  const [started, setStarted]           = useState(false)
-  const [capturedField, setCapturedField] = useState(null)
-  const [showTooltip, setShowTooltip]   = useState(false)
-  const [showFailed, setShowFailed]     = useState(false)
-  const [timerResetKey, setTimerResetKey] = useState(0)
-  const { setFieldValue, getFieldValue } = useGameContext()
+  const navigate = useNavigate()
 
-  const confirmedCountRef = useRef(0)
-  const elapsedMsRef      = useRef(0)
-  const deathsRef         = useRef(0)
-  deathsRef.current = deaths
+  const onComplete = useCallback((result) => {
+    navigate('/success', { state: result })
+  }, [navigate])
 
-  const handleDeath = useCallback(() => {
-    setIsAlive(false)
-    setDeaths(d => d + 1)
-    setCapturedField(null)
-    confirmedCountRef.current = 0
-    setTimeout(() => {
-      resetGame()
-      setIsAlive(true)
-    }, 800)
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleFieldCaptured = useCallback((field) => {
-    setCapturedField(field)
-  }, [])
-
-  const { engineRef, startGame, resetGame, resumeGame } = useGameLoop(canvasRef, {
-    onDeath: handleDeath,
-    onFieldCaptured: handleFieldCaptured,
-  })
-
-  // handleTimeUp must come after useGameLoop so resetGame is available
-  const handleTimeUp = useCallback(() => {
-    setCapturedField(null)
-    setShowFailed(true)
-    engineRef.current?.stop()
-    setDeaths(d => d + 1)
-    confirmedCountRef.current = 0
-    setTimeout(() => {
-      setShowFailed(false)
-      setTimerResetKey(k => k + 1)
-      resetGame()
-    }, 1500)
-  }, [engineRef, resetGame])
-
-  const { display: timerDisplay, elapsedMs } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
-  elapsedMsRef.current = elapsedMs
-
-  const handleInputConfirm = useCallback(async (field, value) => {
-    setFieldValue(field.label, value)
-    setCapturedField(null)
-
-    if (field.label !== 'Verify Password') {
-      confirmedCountRef.current += 1
-    }
-
-    if (confirmedCountRef.current >= 3 && field.label !== 'Verify Password') {
-      engineRef.current.tickRateMs = VERIFY_TICK_RATE_MS
-      engineRef.current.spawnVerifyField()
-      resumeGame()
-      return
-    }
-
-    if (field.label === 'Verify Password') {
-      engineRef.current?.stop()
-      const snapshot = {
-        deaths: deathsRef.current,
-        timeMs: elapsedMsRef.current,
-      }
-      let rank = null
-      try {
-        const res = await fetch('/api/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name:   getFieldValue('Name'),
-            email:  getFieldValue('Email'),
-            timeMs: snapshot.timeMs,
-            deaths: snapshot.deaths,
-          }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          rank = data.rank
-        }
-      } catch {
-        // Server unavailable — proceed to success page without rank
-      }
-      navigate('/success', { state: { rank, ...snapshot } })
-      return
-    }
-
-    resumeGame()
-  }, [setFieldValue, resumeGame, engineRef, getFieldValue, navigate])
-
-  useKeyboard(engineRef, started, {
-    onLetterKey: () => setShowTooltip(true),
-  })
-
-  useEffect(() => {
-    if (!showTooltip) return
-    const t = setTimeout(() => setShowTooltip(false), 2000)
-    return () => clearTimeout(t)
-  }, [showTooltip])
-
-  function handleStart() {
-    setStarted(true)
-    startGame()
-  }
+  const {
+    gameState,
+    deaths,
+    started,
+    capturedField,
+    showTooltip,
+    showFailed,
+    timerDisplay,
+    beginGame,
+    handleInputConfirm,
+    getFieldValue,
+  } = useSnakeGame({ onComplete })
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
-      {/* Fullscreen canvas */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        style={{ display: 'block' }}
-      />
+    <div className="relative w-full h-screen overflow-hidden bg-background">
+      {/* Game board — always mounted */}
+      <GameBoard gameState={gameState} className="absolute inset-0" />
 
       {/* Start screen */}
       {!started && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-          <div
-            className="text-center p-8"
-            style={{
-              background: 'rgba(0,0,0,0.85)',
-              border: '1px solid #39ff14',
-              borderRadius: '8px',
-              boxShadow: '0 0 40px rgba(57,255,20,0.15)',
-            }}
-          >
-            <div className="text-7xl mb-4">🐍</div>
-            <h1
-              className="text-5xl font-bold mb-2"
-              style={{ color: '#39ff14', fontFamily: 'Courier New, monospace', letterSpacing: '0.1em' }}
-            >
-              SnakeUp
-            </h1>
-            <p className="mb-1" style={{ color: '#666', fontFamily: 'monospace' }}>
-              The form that fights back.
-            </p>
-            <p className="mb-6 text-sm" style={{ color: '#444', fontFamily: 'monospace' }}>
-              Use arrow keys or WASD to move
-            </p>
-            <button
-              onClick={handleStart}
-              className="px-8 py-3 font-bold text-lg cursor-pointer"
-              style={{
-                background: '#39ff14',
-                color: '#000',
-                border: 'none',
-                borderRadius: '4px',
-                fontFamily: 'Courier New, monospace',
-                letterSpacing: '0.05em',
-                boxShadow: '0 0 20px rgba(57,255,20,0.4)',
-              }}
-            >
-              PLAY →
-            </button>
-          </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-background/80 backdrop-blur-sm">
+          <Card className="text-center max-w-sm w-[90%] shadow-2xl">
+            <CardHeader>
+              <div className="text-7xl mb-2">🐍</div>
+              <CardTitle className="text-5xl tracking-wider font-mono">
+                SnakeUp
+              </CardTitle>
+              <CardDescription className="text-base">
+                The form that fights back.
+              </CardDescription>
+              <p className="text-sm text-muted-foreground">
+                Use arrow keys or WASD to move
+              </p>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button
+                onClick={beginGame}
+                size="lg"
+                className="px-8 text-lg font-mono tracking-wide shadow-md cursor-pointer"
+              >
+                PLAY
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       )}
 
-      {/* HUD — timer + deaths */}
+      {/* HUD */}
       {started && (
-        <div className="absolute top-4 right-4 z-10 flex gap-3">
-          <div
-            className="text-sm"
-            style={{
-              color: '#39ff14',
-              fontFamily: 'Courier New, monospace',
-              background: 'rgba(0,0,0,0.6)',
-              padding: '6px 12px',
-              borderRadius: '4px',
-              border: '1px solid #1a4a0a',
-            }}
-          >
-            ⏱ {timerDisplay}
-          </div>
-          <div
-            className="text-sm"
-            style={{
-              color: '#39ff14',
-              fontFamily: 'Courier New, monospace',
-              background: 'rgba(0,0,0,0.6)',
-              padding: '6px 12px',
-              borderRadius: '4px',
-              border: '1px solid #1a4a0a',
-            }}
-          >
-            💀 Deaths: {deaths}
-          </div>
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <Badge variant="secondary" className="text-sm px-3 py-1.5 font-mono">
+            {timerDisplay}
+          </Badge>
+          <Badge variant="destructive" className="text-sm px-3 py-1.5 font-mono">
+            Deaths: {deaths}
+          </Badge>
         </div>
       )}
 
-      {/* Time's up — failed overlay */}
+      {/* Time's up overlay */}
       {showFailed && (
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center z-30"
-          style={{ background: 'rgba(0,0,0,0.9)' }}
-        >
-          <div
-            className="text-center p-8 rounded-xl"
-            style={{
-              border: '2px solid #ff4444',
-              boxShadow: '0 0 40px rgba(255,68,68,0.3)',
-            }}
-          >
-            <p
-              className="text-4xl font-bold mb-2"
-              style={{ color: '#ff4444', fontFamily: 'Courier New, monospace' }}
-            >
-              Time&apos;s up! You failed.
-            </p>
-            <p className="text-lg" style={{ color: '#888', fontFamily: 'monospace' }}>
-              Starting again...
-            </p>
-          </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/90">
+          <Card className="text-center p-8 border-destructive border-2 shadow-[0_0_40px_rgba(255,68,68,0.3)]">
+            <CardContent className="space-y-2 pt-0">
+              <p className="text-4xl font-bold text-destructive font-mono">
+                Time&apos;s up! You failed.
+              </p>
+              <p className="text-lg text-muted-foreground font-mono">
+                Starting again...
+              </p>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* Input overlay when field captured */}
+      {/* Input overlay */}
       <InputOverlay
         field={capturedField}
         onConfirm={handleInputConfirm}
         storedPassword={getFieldValue('Password')}
       />
 
-      {/* Tooltip: letter key pressed */}
+      {/* Tooltip */}
       {showTooltip && started && !capturedField && (
-        <div
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded text-sm"
-          style={{
-            color: '#39ff14',
-            fontFamily: 'Courier New, monospace',
-            background: 'rgba(0,0,0,0.8)',
-            border: '1px solid #1a4a0a',
-          }}
-        >
-          Use arrow keys or WASD to move! Chase the fields to fill them in.
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
+          <Badge variant="outline" className="px-4 py-2 text-sm animate-pulse font-mono bg-background/80 backdrop-blur-sm">
+            Use arrow keys or WASD to move! Chase the fields to fill them in.
+          </Badge>
         </div>
       )}
     </div>
   )
 }
 
-// ── Success Page (placeholder) ────────────────────────────────
+// ── Success Page ─────────────────────────────────────────────
 
 function SuccessPage() {
   const location = useLocation()
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
   const { rank, deaths, timeMs } = location.state ?? {}
 
   function formatTime(ms) {
-    if (ms == null) return '—'
+    if (ms == null) return '--:--'
     const totalSeconds = Math.floor(ms / 1000)
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
-    const centis  = Math.floor((ms % 1000) / 10)
+    const centis = Math.floor((ms % 1000) / 10)
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`
   }
 
   return (
-    <div
-      className="flex items-center justify-center h-screen"
-      style={{ background: '#0a0a0a', fontFamily: 'Courier New, monospace' }}
-    >
-      <div
-        className="text-center p-10 rounded-xl"
-        style={{
-          border: '2px solid #39ff14',
-          boxShadow: '0 0 60px rgba(57,255,20,0.2)',
-          maxWidth: '480px',
-          width: '90%',
-        }}
-      >
-        <div className="text-6xl mb-4">🎉</div>
-        <h1
-          className="text-3xl font-bold mb-2"
-          style={{ color: '#39ff14', letterSpacing: '0.05em' }}
-        >
-          You&apos;ve signed up successfully!
-        </h1>
-        <p className="mb-6" style={{ color: '#666' }}>
-          The snake has been fed.
-        </p>
-        {rank != null && (
-          <div className="mb-6 flex flex-col gap-1" style={{ color: '#aaa' }}>
-            <p>Rank: <span style={{ color: '#39ff14' }}>#{rank}</span></p>
-            {timeMs != null && (
-              <p>Time: <span style={{ color: '#39ff14' }}>{formatTime(timeMs)}</span></p>
-            )}
-            {deaths != null && (
-              <p>Deaths: <span style={{ color: '#39ff14' }}>{deaths}</span></p>
-            )}
-          </div>
-        )}
-        <button
-          onClick={() => navigate('/game')}
-          style={{
-            background: '#39ff14',
-            color: '#000',
-            border: 'none',
-            padding: '10px 24px',
-            borderRadius: '4px',
-            fontFamily: 'Courier New, monospace',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            fontSize: '1rem',
-          }}
-        >
-          Play Again
-        </button>
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 p-4">
+      {/* Animated blobs */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
       </div>
+
+      <Card className="relative max-w-md w-full backdrop-blur-sm bg-white/80 shadow-2xl border-0 text-center">
+        <CardHeader>
+          <div className="text-6xl mb-2">🎉</div>
+          <CardTitle className="text-3xl">You signed up!</CardTitle>
+          <CardDescription className="text-base">
+            The snake has been fed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {rank != null && (
+            <div className="flex justify-center gap-3">
+              <Badge variant="secondary" className="text-sm px-3 py-1.5">
+                Rank #{rank}
+              </Badge>
+              {timeMs != null && (
+                <Badge variant="outline" className="text-sm px-3 py-1.5 font-mono">
+                  {formatTime(timeMs)}
+                </Badge>
+              )}
+              {deaths != null && (
+                <Badge variant="destructive" className="text-sm px-3 py-1.5">
+                  {deaths} death{deaths !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Button onClick={() => navigate('/game')} size="lg" className="cursor-pointer">
+            Play Again
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }
 
-// ── Leaderboard placeholder ───────────────────────────────────
+// ── Leaderboard placeholder ──────────────────────────────────
 
 function LeaderboardPage() {
   return (
-    <div
-      className="flex items-center justify-center h-screen"
-      style={{ background: '#0a0a0a', color: '#39ff14', fontFamily: 'Courier New, monospace' }}
-    >
-      <h1 className="text-3xl">Leaderboard — Stage 6</h1>
+    <div className="flex items-center justify-center h-screen bg-background">
+      <Card className="max-w-sm w-[90%] text-center">
+        <CardHeader>
+          <CardTitle className="text-3xl font-mono">Leaderboard</CardTitle>
+          <CardDescription>Coming soon — Stage 6</CardDescription>
+        </CardHeader>
+      </Card>
     </div>
   )
 }
 
-// ── App root ──────────────────────────────────────────────────
+// ── App root ─────────────────────────────────────────────────
 
 export default function App() {
   return (
     <GameProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/"            element={<LoginPage />} />
-          <Route path="/game"        element={<GamePage />} />
-          <Route path="/success"     element={<SuccessPage />} />
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/game" element={<GamePage />} />
+          <Route path="/success" element={<SuccessPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
         </Routes>
       </BrowserRouter>

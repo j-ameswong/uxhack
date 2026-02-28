@@ -1,9 +1,14 @@
 // ============================================================
 //  InputOverlay.jsx
-//  Stage 4: Shows when snake captures a field. User types value, validates, resumes.
+//  Shows when snake captures a field. User types value, validates, resumes.
+//  Restyled with Figma design system components.
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react'
+import { Card, CardContent } from './ui/card.jsx'
+import { Input } from './ui/input.jsx'
+import { Label } from './ui/label.jsx'
+import { Button } from './ui/button.jsx'
 
 const VALIDATORS = {
   Name: (v) => (v.trim().length > 0 ? null : 'Name is required'),
@@ -52,62 +57,46 @@ export function InputOverlay({ field, onConfirm, onCancel, storedPassword }) {
   if (!field) return null
 
   return (
-    <div
-      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2"
-      style={{
-        background: 'rgba(0,0,0,0.9)',
-        border: '1px solid #39ff14',
-        borderRadius: '8px',
-        padding: '16px 24px',
-        boxShadow: '0 0 30px rgba(57,255,20,0.2)',
-        minWidth: '280px',
-      }}
-    >
-      <label
-        className="text-sm w-full text-left"
-        style={{ color: '#39ff14', fontFamily: 'Courier New, monospace' }}
-      >
-        Enter your {field.label}:
-      </label>
-      <input
-        ref={inputRef}
-        type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value)
-          setError(null)
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder={field.label === 'Password' ? 'min 8 characters' : field.label === 'Verify Password' ? 're-enter password' : ''}
-        className="w-full px-4 py-2 rounded border"
-        style={{
-          background: '#0a0a0a',
-          borderColor: error ? '#ff4444' : '#333',
-          color: '#fff',
-          fontFamily: 'monospace',
-        }}
-      />
-      {error && (
-        <p
-          className="text-xs w-full text-left"
-          style={{ color: '#ff4444', fontFamily: 'monospace' }}
-        >
-          {error}
-        </p>
-      )}
-      <button
-        type="button"
-        onClick={handleConfirm}
-        className="px-4 py-2 text-sm font-bold rounded"
-        style={{
-          background: '#39ff14',
-          color: '#000',
-          border: 'none',
-          fontFamily: 'Courier New, monospace',
-        }}
-      >
-        Confirm (Enter)
-      </button>
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30">
+      <Card className="min-w-[300px] backdrop-blur-md bg-card/90 shadow-2xl border">
+        <CardContent className="space-y-3 pt-4 pb-4 px-5">
+          <Label htmlFor="field-input" className="text-sm">
+            Enter your {field.label}:
+          </Label>
+          <Input
+            ref={inputRef}
+            id="field-input"
+            type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value)
+              setError(null)
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              field.label === 'Password'
+                ? 'min 8 characters'
+                : field.label === 'Verify Password'
+                  ? 're-enter password'
+                  : ''
+            }
+            aria-invalid={!!error}
+          />
+          {error && (
+            <p className="text-xs text-destructive">
+              {error}
+            </p>
+          )}
+          <Button
+            type="button"
+            onClick={handleConfirm}
+            size="sm"
+            className="w-full cursor-pointer"
+          >
+            Confirm (Enter)
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

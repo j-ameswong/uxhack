@@ -30,17 +30,3 @@ export const DIR = {
   RIGHT: { col:  1, row:  0 },
 }
 
-// Colours (used in draw.js)
-export const COLORS = {
-  BACKGROUND:    '#0a0a0a',
-  GRID_LINE:     '#111111',
-  SNAKE_HEAD:    '#39ff14',   // neon green
-  SNAKE_BODY:    '#1a7a06',
-  SNAKE_OUTLINE: '#0d3d03',
-  DEATH_FLASH:   '#ff2222',
-  FIELD_BG:      '#1a1a2e',
-  FIELD_BORDER:  '#4a4af0',
-  FIELD_TEXT:    '#a0a0ff',
-  FIELD_LABEL:   '#ffffff',
-  HUD_TEXT:      '#39ff14',
-}

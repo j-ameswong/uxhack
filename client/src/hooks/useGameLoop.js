@@ -1,27 +1,25 @@
 // ============================================================
 //  useGameLoop.js
-//  Mounts GameEngine on the canvas ref.
-//  Runs a requestAnimationFrame render loop (draw only).
-//  Engine ticks run on their own setInterval — separate from draw.
+//  Mounts GameEngine and exposes game state via React state.
+//  No canvas — rendering is handled by GameBoard (DOM).
 // ============================================================
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { GameEngine } from '../game/engine.js'
-import { draw } from '../game/draw.js'
 import { TICK_RATE_MS } from '../game/constants.js'
 
 /**
- * @param {React.RefObject<HTMLCanvasElement>} canvasRef
  * @param {object} callbacks
  *   onDeath()              — called by engine on wall/self collision
- *   onGrow()               — called on field capture (Stage 4)
  *   onFieldCaptured(field) — called when snake captures a field; game pauses
- * @returns {{ engineRef, startGame, stopGame, resetGame, resumeGame }}
+ * @returns {{ engineRef, gameState, startGame, stopGame, resetGame, resumeGame }}
  */
-export function useGameLoop(canvasRef, callbacks = {}) {
+export function useGameLoop(callbacks = {}) {
   const engineRef    = useRef(null)
   const callbacksRef = useRef(callbacks)
   callbacksRef.current = callbacks
+
+  const [gameState, setGameState] = useState(null)
 
   // ── Engine callbacks (stable refs) ──
   const onDeath = useCallback(() => {
@@ -32,74 +30,45 @@ export function useGameLoop(canvasRef, callbacks = {}) {
     callbacksRef.current.onFieldCaptured?.(field)
   }, [])
 
+  const onTick = useCallback((state) => {
+    setGameState(state)
+  }, [])
+
   // ── Mount engine once ─────────────────────────────────────
   useEffect(() => {
-    engineRef.current = new GameEngine({ onDeath, onFieldCaptured })
+    engineRef.current = new GameEngine({ onDeath, onFieldCaptured, onTick })
+    // Set initial state so GameBoard can render before first tick
+    setGameState(engineRef.current.getState())
 
     return () => {
       engineRef.current.stop()
       engineRef.current = null
     }
-  }, [onDeath, onFieldCaptured])
-
-  // ── Canvas resize observer ────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    function resize() {
-      canvas.width  = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-      // Setting width/height clears the canvas — redraw when paused (e.g. after field capture)
-      if (engineRef.current && !engineRef.current.intervalId) {
-        const ctx = canvas.getContext('2d')
-        const state = engineRef.current.getState()
-        if (state?.snake?.length) {
-          draw(ctx, state, canvas.width, canvas.height)
-        }
-      }
-    }
-
-    resize()
-    const ro = new ResizeObserver(resize)
-    ro.observe(canvas)
-    return () => ro.disconnect()
-  }, [canvasRef])
-
-  const getDimensions = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return { width: 0, height: 0 }
-    return { width: canvas.width || canvas.offsetWidth, height: canvas.height || canvas.offsetHeight }
-  }, [canvasRef])
+  }, [onDeath, onFieldCaptured, onTick])
 
   // ── Exposed controls ──────────────────────────────────────
   const startGame = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !engineRef.current) return
-    const ctx = canvas.getContext('2d')
-    engineRef.current.start(ctx, getDimensions, draw, TICK_RATE_MS)
-  }, [canvasRef, getDimensions])
+    if (!engineRef.current) return
+    engineRef.current.start(TICK_RATE_MS)
+  }, [])
 
   const stopGame = useCallback(() => {
     engineRef.current?.stop()
   }, [])
 
   const resetGame = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !engineRef.current) return
+    if (!engineRef.current) return
     engineRef.current.stop()
     engineRef.current._resetSnake()
-    const ctx = canvas.getContext('2d')
-    engineRef.current.start(ctx, getDimensions, draw, TICK_RATE_MS)
-  }, [canvasRef, getDimensions])
+    setGameState(engineRef.current.getState())
+    engineRef.current.start(TICK_RATE_MS)
+  }, [])
 
   // Resume after field capture — use engine's current (possibly faster) tick rate
   const resumeGame = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !engineRef.current) return
-    const ctx = canvas.getContext('2d')
-    engineRef.current.start(ctx, getDimensions, draw, engineRef.current.tickRateMs)
-  }, [canvasRef, getDimensions])
+    if (!engineRef.current) return
+    engineRef.current.start(engineRef.current.tickRateMs)
+  }, [])
 
-  return { engineRef, startGame, stopGame, resetGame, resumeGame }
+  return { engineRef, gameState, startGame, stopGame, resetGame, resumeGame }
 }
