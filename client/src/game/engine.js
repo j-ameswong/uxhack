@@ -98,10 +98,18 @@ export class GameEngine {
     return { snake: [...this.snake], direction: this.direction };
   }
 
+  getDimensions() {
+    if (!this._ctx) return { width: 0, height: 0 };
+    return { width: this._ctx.canvas.width, height: this._ctx.canvas.height };
+  }
+
   start(ctx, getDimensions, draw, tickRateMs) {
     if (this.intervalId) return;
+    this._ctx = ctx;
+    this._draw = draw;
+    const getSize = getDimensions ?? (() => this.getDimensions());
     const tick = () => {
-      const { width, height } = getDimensions();
+      const { width, height } = getSize();
       const result = this.tick(ctx, width, height);
       draw(ctx, result, width, height);
     };

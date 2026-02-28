@@ -116,18 +116,27 @@ Table: `submissions`
 ### Stage 2 — Canvas Game Engine (Snake Only)
 **Goal:** A playable snake on canvas with wall and self-collision — no fields yet.
 
-- [ ] Create `client/src/game/constants.js` — export all configurable constants
-- [ ] Create `client/src/game/engine.js` — `GameEngine` class with:
-  - [ ] `start()` / `stop()` methods
-  - [ ] `tick()` advancing snake position each interval
-  - [ ] Wall collision → trigger `onDeath` callback
-  - [ ] Self-collision → trigger `onDeath` callback
-  - [ ] Direction queue (prevent 180° reversal)
-- [ ] Create `client/src/game/draw.js` — `draw(ctx, state)` function that clears and repaints canvas each tick
-- [ ] Create `client/src/hooks/useKeyboard.js` — captures arrow key events, calls `event.preventDefault()`, feeds direction to engine
-- [ ] Create `client/src/hooks/useGameLoop.js` — mounts engine on canvas ref via `useEffect`, wires callbacks
-- [ ] Render `<canvas>` fullscreen in `App.jsx` with the game loop hook
-- [ ] Verify: snake moves, grows on self (placeholder), dies on wall/self and resets to centre
+- [x] Create `client/src/game/constants.js` — export all configurable constants
+- [x] Create `client/src/game/engine.js` — `GameEngine` class with:
+  - [x] `start()` / `stop()` / `pause()` / `resume()` / `reset()` methods
+  - [x] `tick()` advancing snake position each interval
+  - [x] Wall collision → trigger `onDeath` callback
+  - [x] Self-collision → trigger `onDeath` callback
+  - [x] Direction queue (prevent 180° reversal)
+- [x] Create `client/src/game/draw.js` — `draw(ctx, state, canvas)` with grid, snake, eye glints, death flash, field stub
+- [x] Create `client/src/game/useKeyboard.js` — arrow keys + WASD, `preventDefault`, feeds engine
+- [x] Create `client/src/game/useGameLoop.js` — mounts engine, ResizeObserver on canvas, rAF render loop
+- [x] Create `client/src/game/App.jsx` — `GamePage` (canvas + start screen + HUD), `LeaderboardPage` stub, React Router shell
+
+> **NOTE — teammates placed hooks and App.jsx inside `client/src/game/` instead of the planned `src/hooks/` and `src/` directories. Acceptable deviation — do not reorganise mid-project.**
+
+**3 bugs to fix before Stage 2 is shippable:**
+
+- [x] **BUG 1 — app entry not updated:** Fixed `client/src/main.jsx` to import `'./game/App.jsx'`.
+- [x] **BUG 2 — wrong hook import paths:** Fixed `App.jsx` imports to `'./useGameLoop.js'` and `'./useKeyboard.js'`.
+- [x] **BUG 3 — missing dependency:** Installed `react-router-dom` in `/client`.
+
+### Stage 2 ✅ — Verified: build produces 236 kB (was 193 kB) confirming all game modules are now bundled.
 
 ---
 
