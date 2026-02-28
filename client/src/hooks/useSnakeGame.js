@@ -25,6 +25,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const [isFlashing, setIsFlashing] = useState(false)
   const [scattering, setScattering] = useState(false)
   const [cardFading, setCardFading] = useState(false)
+  const [morphing, setMorphing] = useState(false)
   const [deathCountdown, setDeathCountdown] = useState(null)
   const { setFieldValue, getFieldValue } = useGameContext()
 
@@ -160,19 +161,20 @@ export function useSnakeGame({ onComplete } = {}) {
     return () => clearTimeout(t)
   }, [showTooltip])
 
-  const CARD_FADE_MS = 600      // card fades out over this duration
-  const BLOB_LINGER_MS = 1500   // blobs stay visible after card is gone
-  const APPEAR_DELAY_MS = 1000  // fields sit at form positions before spiral
+  const MORPH_DURATION_MS = 1800 // form inputs morph into game fields
+  const APPEAR_DELAY_MS = 1000  // fields sit at game positions before spiral
   const SPIRAL_DURATION_MS = 2000
   const SPIRAL_ROTATIONS = 2
   const SPIRAL_AMPLITUDE = 0.35 // fraction of distance for spiral radius
 
   const beginGame = useCallback(() => {
-    // Phase 1: fade out the card, keep blobs visible
+    // Phase 1: fade card + morph form inputs into game fields (cross-fade)
     setCardFading(true)
+    setMorphing(true)
 
-    // Phase 2: after card gone + blob linger, show fields at form positions
+    // Phase 2: morph complete — switch to scatter phase
     setTimeout(() => {
+      setMorphing(false)
       setCardFading(false)
       setScattering(true)
 
@@ -255,7 +257,7 @@ export function useSnakeGame({ onComplete } = {}) {
 
         requestAnimationFrame(animateSpiral)
       }, APPEAR_DELAY_MS)
-    }, CARD_FADE_MS + BLOB_LINGER_MS)
+    }, MORPH_DURATION_MS)
   }, [startGame, engineRef])
 
   return {
@@ -265,6 +267,7 @@ export function useSnakeGame({ onComplete } = {}) {
     started,
     scattering,
     cardFading,
+    morphing,
     deathCountdown,
     capturedField,
     showTooltip,

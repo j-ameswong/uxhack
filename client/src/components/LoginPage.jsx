@@ -62,6 +62,7 @@ export function LoginPage() {
     started,
     scattering,
     cardFading,
+    morphing,
     deathCountdown,
     capturedField,
     showTooltip,
@@ -76,6 +77,20 @@ export function LoginPage() {
     handleFailedValidation,
     getFieldValue,
   } = useSnakeGame({ onComplete });
+
+  // Morph animation: form inputs transition into game fields
+  const [inputRects, setInputRects] = useState(null);
+  const [morphed, setMorphed] = useState(false);
+
+  // Trigger CSS transitions after morph divs are first painted
+  useEffect(() => {
+    if (morphing && inputRects) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setMorphed(true));
+      });
+    }
+    if (!morphing) setMorphed(false);
+  }, [morphing, inputRects]);
 
   const nameValid = formName.trim().length > 0;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim());
@@ -137,15 +152,32 @@ export function LoginPage() {
     const fields = engineRef.current?.fields;
 
     if (fields) {
-      ['name', 'email', 'password'].forEach((id, i) => {
+      const rects = ['name', 'email', 'password'].map((id, i) => {
         const el = document.getElementById(id);
-        if (el && fields[i]) {
-          const rect = el.getBoundingClientRect();
-          // Center the game field on the form input's center
-          fields[i].col = Math.round((rect.left + rect.width / 2) / cellW - fields[i].width / 2);
-          fields[i].row = Math.round((rect.top + rect.height / 2) / cellH - fields[i].height / 2);
-        }
+        const domRect = el?.getBoundingClientRect();
+        const field = fields[i];
+
+        // Center the game field on the form input's center
+        field.col = Math.round((domRect.left + domRect.width / 2) / cellW - field.width / 2);
+        field.row = Math.round((domRect.top + domRect.height / 2) / cellH - field.height / 2);
+
+        return {
+          // Start: match the form input exactly
+          startLeft: domRect.left,
+          startTop: domRect.top,
+          startWidth: domRect.width,
+          startHeight: domRect.height,
+          // Target: game field dimensions at the same grid position
+          targetLeft: field.col * cellW,
+          targetTop: field.row * cellH,
+          targetWidth: field.width * cellW,
+          targetHeight: field.height * cellH,
+          label: field.label,
+        };
       });
+
+      setInputRects(rects);
+
       // Push updated positions to game state
       engineRef.current.onTick({
         snake: [...engineRef.current.snake],
@@ -222,8 +254,21 @@ export function LoginPage() {
         </div>
       )}
 
-      {/* ── Scatter phase: GameBoard with fields animating from form -> random ── */}
-      {scattering && (
+      {/* ── Dark game background — visible during morph, scatter, and game ── */}
+      {(morphing || scattering || started) && (
+        <div className="absolute inset-0" style={{ backgroundColor: '#1a1a2e' }}>
+          <div
+            className="absolute inset-0 opacity-10 pointer-events-none"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+            }}
+          />
+        </div>
+      )}
+
+      {/* ── GameBoard with fields at form positions — visible during morph + scatter ── */}
+      {(morphing || scattering) && !started && (
         <GameBoard
           gameState={gameState}
           showSnake={false}
@@ -232,6 +277,33 @@ export function LoginPage() {
         />
       )}
 
+      {/* ── Morph divs: form inputs transitioning into game fields ── */}
+      {morphing && inputRects && inputRects.map((r, i) => (
+        <div
+          key={`morph-${i}`}
+          className="absolute z-20 flex items-center justify-center pointer-events-none select-none"
+          style={{
+            left: morphed ? r.targetLeft : r.startLeft,
+            top: morphed ? r.targetTop : r.startTop,
+            width: morphed ? r.targetWidth : r.startWidth,
+            height: morphed ? r.targetHeight : r.startHeight,
+            backgroundColor: morphed ? '#3b3b5c' : 'rgba(255,255,255,0.5)',
+            borderRadius: morphed ? '0px' : '6px',
+            border: morphed ? '3px solid #5a5a7a' : '1px solid #d1d5db',
+            opacity: morphed ? 0 : 1,
+            fontFamily: morphed ? 'var(--font-pixel)' : 'system-ui, -apple-system, sans-serif',
+            fontSize: morphed ? '0.75rem' : '0.875rem',
+            color: morphed ? '#4ade80' : '#9ca3af',
+            transition: 'all 1800ms ease-in-out',
+            boxShadow: morphed
+              ? 'inset -2px -2px 0 #2a2a44, inset 2px 2px 0 #4a4a6a'
+              : '0 1px 2px rgba(0,0,0,0.05)',
+          }}
+        >
+          <span className="truncate px-2">{r.label}</span>
+        </div>
+      ))}
+
       {/* ── Pre-game: Corporate glassmorphic login form ── */}
       {!started && !scattering && (
         <div
@@ -239,7 +311,11 @@ export function LoginPage() {
             "absolute inset-0 flex items-center justify-center z-10 p-4 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100",
             cardFading ? "pointer-events-none" : ""
           )}
-          style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
+          style={{
+            fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+            opacity: morphing ? 0 : 1,
+            transition: morphing ? 'opacity 1800ms ease-in-out' : 'none',
+          }}
         >
           {/* Animated background blobs */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -341,24 +417,13 @@ export function LoginPage() {
 
       {/* ── Active game: DOM-rendered board ── */}
       {started && (
-        <>
-          <div className="absolute inset-0" style={{ backgroundColor: '#1a1a2e' }}>
-            <div
-              className="absolute inset-0 opacity-10 pointer-events-none"
-              style={{
-                backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-              }}
-            />
-          </div>
-          <GameBoard
-            gameState={gameState}
-            className={cn(
-              "absolute inset-0 transition-colors duration-150 z-10",
-              isFlashing ? "bg-red-600/40" : penaltyFlash ? "bg-red-900/30" : "bg-transparent",
-            )}
-          />
-        </>
+        <GameBoard
+          gameState={gameState}
+          className={cn(
+            "absolute inset-0 transition-colors duration-150 z-10",
+            isFlashing ? "bg-red-600/40" : penaltyFlash ? "bg-red-900/30" : "bg-transparent",
+          )}
+        />
       )}
 
       {/* HUD */}
