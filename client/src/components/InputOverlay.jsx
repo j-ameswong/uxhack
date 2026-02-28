@@ -100,6 +100,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
         setValue('')
         setError(null)
       } else {
+        setValue('')
         onFailedValidation?.()
       }
       return
@@ -111,6 +112,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
         const rule = PASSWORD_RULES[i]
         if (!rule.test(value)) {
           setError(`Rule ${i + 1}: ${rule.message}`)
+          setValue('')
           onFailedValidation?.()
           return
         }
@@ -122,6 +124,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
         if (!nextRule.test(value)) {
           setPasswordLevel(nextLevel)
           setError(`Rule ${nextLevel + 1}: ${nextRule.message}`)
+          setValue('')
           onFailedValidation?.()
           return
         }
@@ -132,6 +135,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
           if (!PASSWORD_RULES[level].test(value)) {
             setPasswordLevel(level)
             setError(`Rule ${level + 1}: ${PASSWORD_RULES[level].message}`)
+            setValue('')
             onFailedValidation?.()
             return
           }
