@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useSnakeGame } from "./hooks/useSnakeGame.js";
+import { LandingPage } from "./components/LandingPage.jsx";
 import { LoginPage } from "./components/LoginPage.jsx";
 import { InputOverlay } from "./components/InputOverlay.jsx";
 import { GameBoard } from "./components/GameBoard.jsx";
@@ -293,7 +294,8 @@ export default function App() {
     <GameProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LoginPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signup" element={<LoginPage />} />
           <Route path="/game" element={<GamePage />} />
           <Route path="/success" element={<SuccessPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />

@@ -204,7 +204,7 @@ export function LoginPage() {
               <CardDescription className="text-gray-500" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>Fill in the form to get started</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-4" onSubmit={handleSubmit} style={{ '--ring': '#6366f1' }}>
                 {/* Name field */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
