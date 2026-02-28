@@ -302,3 +302,19 @@ Table: `submissions`
 - All grid positions are `{ col, row }` objects. Pixel conversion happens only in `draw.js`.
 - Constants are defined once in `constants.js` and imported everywhere — no magic numbers in engine code.
 - Commit after each stage is verified working.
+
+## TODO:
+- When the snake goes out of bounds after capturing an input, it speeds up and resets to the center, but the snake dies and resets after moving a few tiles, when it should continue normally after being reset to the center.
+
+- Not a bug, but the timer should tick down by a certain amount for each death the user experiences.
+
+- Giving the wrong validation should reduce the time as well.
+
+- There should be a visual indicator on death
+
+- Nice to have: An animation before the game starts, where the fields start in the position of the initial login form, then get shuffled to their randomised positions
+
+- Redesign the color scheme to be use the color scheme of AllocateMe
+
+- Add sound
+

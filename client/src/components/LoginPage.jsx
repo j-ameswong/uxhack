@@ -4,25 +4,36 @@
 //  Uses useSnakeGame hook + GameBoard (DOM) instead of canvas.
 // ============================================================
 
-import { useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useSnakeGame } from '../hooks/useSnakeGame.js'
-import { GameBoard } from './GameBoard.jsx'
-import { InputOverlay } from './InputOverlay.jsx'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card.jsx'
-import { Input } from './ui/input.jsx'
-import { Label } from './ui/label.jsx'
-import { Button } from './ui/button.jsx'
-import { Badge } from './ui/badge.jsx'
-import { Lock, Mail, User, LogIn } from 'lucide-react'
+import { useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSnakeGame } from "../hooks/useSnakeGame.js";
+import { GameBoard } from "./GameBoard.jsx";
+import { InputOverlay } from "./InputOverlay.jsx";
+import { cn } from "./ui/utils.js";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "./ui/card.jsx";
+import { Input } from "./ui/input.jsx";
+import { Label } from "./ui/label.jsx";
+import { Button } from "./ui/button.jsx";
+import { Badge } from "./ui/badge.jsx";
+import { Lock, Mail, User, LogIn } from "lucide-react";
 
 export function LoginPage() {
-  const navigate = useNavigate()
-  const passwordRef = useRef(null)
+  const navigate = useNavigate();
+  const passwordRef = useRef(null);
 
-  const onComplete = useCallback((result) => {
-    navigate('/success', { state: result })
-  }, [navigate])
+  const onComplete = useCallback(
+    (result) => {
+      navigate("/success", { state: result });
+    },
+    [navigate],
+  );
 
   const {
     gameState,
@@ -32,22 +43,23 @@ export function LoginPage() {
     showTooltip,
     showFailed,
     timerDisplay,
+    isFlashing,
     beginGame,
     handleInputConfirm,
     getFieldValue,
-  } = useSnakeGame({ onComplete })
+  } = useSnakeGame({ onComplete });
 
   function handlePasswordKeyDown(e) {
-    if (started) return
+    if (started) return;
     const isTypingKey =
       e.key.length === 1 ||
-      e.key === 'Backspace' ||
-      e.key === 'Delete' ||
-      e.key === 'Enter'
+      e.key === "Backspace" ||
+      e.key === "Delete" ||
+      e.key === "Enter";
     if (isTypingKey) {
-      e.preventDefault()
-      e.stopPropagation()
-      beginGame()
+      e.preventDefault();
+      e.stopPropagation();
+      beginGame();
     }
   }
 
@@ -78,7 +90,9 @@ export function LoginPage() {
 
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm">Name</Label>
+                <Label htmlFor="name" className="text-sm">
+                  Name
+                </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
@@ -91,7 +105,9 @@ export function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm">Email</Label>
+                <Label htmlFor="email" className="text-sm">
+                  Email
+                </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
@@ -104,7 +120,9 @@ export function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm">Password</Label>
+                <Label htmlFor="password" className="text-sm">
+                  Password
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
@@ -114,8 +132,12 @@ export function LoginPage() {
                     placeholder="••••••••"
                     className="pl-10 h-11 bg-white"
                     onKeyDown={handlePasswordKeyDown}
-                    onFocus={(e) => { e.target.placeholder = 'Try typing...' }}
-                    onBlur={(e) => { e.target.placeholder = '••••••••' }}
+                    onFocus={(e) => {
+                      e.target.placeholder = "Try typing...";
+                    }}
+                    onBlur={(e) => {
+                      e.target.placeholder = "••••••••";
+                    }}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -139,7 +161,13 @@ export function LoginPage() {
 
       {/* ── Active game: DOM-rendered board ── */}
       {started && (
-        <GameBoard gameState={gameState} className="absolute inset-0" />
+        <GameBoard
+          gameState={gameState}
+          className={cn(
+            "absolute inset-0 transition-colors duration-100",
+            isFlashing && "bg-red-600",
+          )}
+        />
       )}
 
       {/* HUD */}
@@ -148,7 +176,10 @@ export function LoginPage() {
           <Badge variant="secondary" className="text-sm px-3 py-1.5 font-mono">
             {timerDisplay}
           </Badge>
-          <Badge variant="destructive" className="text-sm px-3 py-1.5 font-mono">
+          <Badge
+            variant="destructive"
+            className="text-sm px-3 py-1.5 font-mono"
+          >
             Deaths: {deaths}
           </Badge>
         </div>
@@ -158,8 +189,13 @@ export function LoginPage() {
       <InputOverlay
         field={capturedField}
         onConfirm={handleInputConfirm}
-        storedPassword={getFieldValue('Password')}
+        storedPassword={getFieldValue("Password")}
       />
+
+      {/* Death Flash Overlay */}
+      {isFlashing && (
+        <div className="absolute inset-0 bg-red-600/40 z-1000 pointer-events-none mix-blend-overlay" />
+      )}
 
       {/* Time's up overlay */}
       {showFailed && (
@@ -180,11 +216,14 @@ export function LoginPage() {
       {/* Tooltip */}
       {showTooltip && started && !capturedField && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
-          <Badge variant="outline" className="px-4 py-2 text-sm animate-pulse font-mono bg-background/80 backdrop-blur-sm">
+          <Badge
+            variant="outline"
+            className="px-4 py-2 text-sm animate-pulse font-mono bg-background/80 backdrop-blur-sm"
+          >
             Use arrow keys or WASD to move! Chase the fields to fill them in.
           </Badge>
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -21,6 +21,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const [showTooltip, setShowTooltip] = useState(false)
   const [showFailed, setShowFailed] = useState(false)
   const [timerResetKey, setTimerResetKey] = useState(0)
+  const [isFlashing, setIsFlashing] = useState(false)
   const { setFieldValue, getFieldValue } = useGameContext()
 
   const confirmedCountRef = useRef(0)
@@ -32,6 +33,12 @@ export function useSnakeGame({ onComplete } = {}) {
     setDeaths(d => d + 1)
     setCapturedField(null)
     confirmedCountRef.current = 0
+    console.log("Death triggered!")
+
+    // Trigger the flash effect
+    setIsFlashing(true)
+    setTimeout(() => setIsFlashing(false), 100)
+
     setTimeout(() => resetGame(), 800)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -135,6 +142,7 @@ export function useSnakeGame({ onComplete } = {}) {
     showTooltip,
     showFailed,
     timerDisplay,
+    isFlashing,
     beginGame,
     stopGame,
     handleInputConfirm,
