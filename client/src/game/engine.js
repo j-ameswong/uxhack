@@ -1,4 +1,5 @@
 import { GRID_COLS, GRID_ROWS } from './constants.js';
+import { createInitialFields } from './fields.js';
 
 const DIRECTIONS = {
   up: { col: 0, row: -1 },
@@ -22,6 +23,7 @@ export class GameEngine {
     this.nextDirection = null;
     this.intervalId = null;
     this.tickCount = 0;
+    this.fields = createInitialFields();
     this._resetSnake();
   }
 
@@ -35,6 +37,8 @@ export class GameEngine {
     ];
     this.direction = 'right';
     this.nextDirection = null;
+    // Scatter fields to new random positions on death (Stage 3+)
+    this.fields = createInitialFields();
   }
 
   setDirection(dir) {
@@ -81,21 +85,29 @@ export class GameEngine {
     if (this._isWallCollision(newHead) || this._isSelfCollision(newHead)) {
       this.onDeath();
       this._resetSnake();
-      return { snake: [...this.snake], gameOver: true };
+      return { snake: [...this.snake], fields: this.fields, gameOver: true };
     }
 
     this.snake.push(newHead);
     this.tickCount += 1;
 
-    if (this.tickCount % 10 !== 0) {
+    // Only grow when consuming a field (Stage 4). Until then, always remove tail.
+    const consumed = false; // TODO: set true on field capture
+    if (!consumed) {
       this.snake.shift();
     }
 
-    return { snake: [...this.snake], gameOver: false };
+    // Flee AI: each field moves away from snake head if within FLEE_RADIUS
+    const head = this.snake[this.snake.length - 1];
+    for (const field of this.fields) {
+      field.fleeStep(head);
+    }
+
+    return { snake: [...this.snake], fields: this.fields, gameOver: false };
   }
 
   getState() {
-    return { snake: [...this.snake], direction: this.direction };
+    return { snake: [...this.snake], direction: this.direction, fields: this.fields };
   }
 
   getDimensions() {
