@@ -1,14 +1,9 @@
 // ============================================================
 //  LeaderboardModal.jsx
-//  Fetches and displays top-10 leaderboard.
-//  Props:
-//    currentId   — id from submit response; highlights that row
-//    currentRank — rank from submit response; appended if not top 10
+//  Pixel-art styled leaderboard.
 // ============================================================
 
 import { useEffect, useState } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card.jsx'
-import { Badge } from './ui/badge.jsx'
 
 function formatTime(ms) {
   if (ms == null) return '--:--'
@@ -19,13 +14,18 @@ function formatTime(ms) {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`
 }
 
+const pixelFont = { fontFamily: 'var(--font-pixel)' }
+
 function Row({ entry, highlight }) {
   return (
-    <tr className={highlight ? 'bg-primary/10 font-semibold' : 'hover:bg-muted/40'}>
-      <td className="px-3 py-2 text-center font-mono text-sm">#{entry.rank}</td>
-      <td className="px-3 py-2 text-sm max-w-[120px] truncate">{entry.name}</td>
-      <td className="px-3 py-2 text-center font-mono text-sm">{formatTime(entry.timeMs)}</td>
-      <td className="px-3 py-2 text-center text-sm">{entry.deaths}</td>
+    <tr style={{
+      backgroundColor: highlight ? 'rgba(74,222,128,0.15)' : 'transparent',
+      borderBottom: '2px solid #3b3b5c',
+    }}>
+      <td className="px-3 py-2 text-center" style={{ ...pixelFont, fontSize: '0.5rem', color: '#6366f1' }}>#{entry.rank}</td>
+      <td className="px-3 py-2 max-w-[120px] truncate" style={{ ...pixelFont, fontSize: '0.5rem', color: '#e0e0e0' }}>{entry.name}</td>
+      <td className="px-3 py-2 text-center" style={{ ...pixelFont, fontSize: '0.5rem', color: '#4ade80' }}>{formatTime(entry.timeMs)}</td>
+      <td className="px-3 py-2 text-center" style={{ ...pixelFont, fontSize: '0.5rem', color: '#ef4444' }}>{entry.deaths}</td>
     </tr>
   )
 }
@@ -45,30 +45,37 @@ export function LeaderboardModal({ currentId, currentRank }) {
   const userInTop10 = entries.some(e => e.id === currentId)
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-mono">Leaderboard</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
+    <div className="pixel-bevel w-full" style={{ backgroundColor: '#25253e' }}>
+      {/* Title bar */}
+      <div className="px-3 py-2" style={{
+        backgroundColor: '#6366f1',
+        borderBottom: '3px solid #3730a3',
+      }}>
+        <span style={{ ...pixelFont, fontSize: '0.625rem', color: '#e0e0e0', fontWeight: 'bold' }}>
+          LEADERBOARD
+        </span>
+      </div>
+
+      <div className="p-0">
         {loading && (
-          <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>
+          <p className="text-center py-4" style={{ ...pixelFont, fontSize: '0.5rem', color: '#9090b0' }}>Loading...</p>
         )}
         {error && (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="text-center py-4" style={{ ...pixelFont, fontSize: '0.5rem', color: '#ef4444' }}>
             Couldn&apos;t load leaderboard.
           </p>
         )}
         {!loading && !error && entries.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">No entries yet.</p>
+          <p className="text-center py-4" style={{ ...pixelFont, fontSize: '0.5rem', color: '#9090b0' }}>No entries yet.</p>
         )}
         {!loading && !error && entries.length > 0 && (
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b text-muted-foreground text-xs uppercase">
-                <th className="px-3 py-2 text-center">#</th>
-                <th className="px-3 py-2 text-left">Name</th>
-                <th className="px-3 py-2 text-center">Time</th>
-                <th className="px-3 py-2 text-center">Deaths</th>
+              <tr style={{ borderBottom: '3px solid #4a4a6a' }}>
+                <th className="px-3 py-2 text-center" style={{ ...pixelFont, fontSize: '0.4rem', color: '#6a6a8a' }}>#</th>
+                <th className="px-3 py-2 text-left" style={{ ...pixelFont, fontSize: '0.4rem', color: '#6a6a8a' }}>NAME</th>
+                <th className="px-3 py-2 text-center" style={{ ...pixelFont, fontSize: '0.4rem', color: '#6a6a8a' }}>TIME</th>
+                <th className="px-3 py-2 text-center" style={{ ...pixelFont, fontSize: '0.4rem', color: '#6a6a8a' }}>DEATHS</th>
               </tr>
             </thead>
             <tbody>
@@ -77,17 +84,17 @@ export function LeaderboardModal({ currentId, currentRank }) {
               ))}
               {currentId && !userInTop10 && currentRank != null && (
                 <>
-                  <tr><td colSpan={4} className="border-t border-dashed" /></tr>
-                  <tr className="bg-primary/10 font-semibold">
-                    <td className="px-3 py-2 text-center font-mono text-sm">#{currentRank}</td>
-                    <td className="px-3 py-2 text-sm italic text-muted-foreground" colSpan={3}>You</td>
+                  <tr><td colSpan={4} style={{ borderTop: '2px dashed #4a4a6a' }} /></tr>
+                  <tr style={{ backgroundColor: 'rgba(74,222,128,0.15)' }}>
+                    <td className="px-3 py-2 text-center" style={{ ...pixelFont, fontSize: '0.5rem', color: '#6366f1' }}>#{currentRank}</td>
+                    <td className="px-3 py-2" colSpan={3} style={{ ...pixelFont, fontSize: '0.5rem', color: '#9090b0' }}>You</td>
                   </tr>
                 </>
               )}
             </tbody>
           </table>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

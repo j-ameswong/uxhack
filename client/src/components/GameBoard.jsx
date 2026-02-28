@@ -1,6 +1,6 @@
 // ============================================================
 //  GameBoard.jsx
-//  DOM-based game renderer — replaces the canvas draw.js.
+//  DOM-based game renderer — pixel-art style with bevels.
 //  Renders snake segments and fields as positioned divs.
 // ============================================================
 
@@ -42,22 +42,26 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
       {fields.map((field) => {
         if (field.captured) return null
         const rect = field.getRect ? field.getRect() : field
+        const fieldW = (rect.width ?? 2) * cellSize.w
+        const fieldH = (rect.height ?? 1) * cellSize.h
         return (
           <div
             key={field.label}
             className={cn(
-              "absolute flex items-center justify-center rounded-lg border-2 border-primary bg-card/80 backdrop-blur-sm select-none pointer-events-none",
+              "absolute flex items-center justify-center select-none pointer-events-none pixel-bevel",
               animateFields && "transition-[left,top] duration-200 ease-out"
             )}
             style={{
               left: rect.col * cellSize.w,
               top: rect.row * cellSize.h,
-              width: (rect.width ?? 2) * cellSize.w,
-              height: (rect.height ?? 1) * cellSize.h,
-              fontSize: Math.max(10, Math.min((rect.height ?? 1) * cellSize.h * 0.35, (rect.width ?? 2) * cellSize.w * 0.12)),
+              width: fieldW,
+              height: fieldH,
+              backgroundColor: '#3b3b5c',
+              fontSize: Math.max(8, Math.min(fieldH * 0.28, fieldW * 0.08)),
+              fontFamily: 'var(--font-pixel)',
             }}
           >
-            <span className="font-bold text-primary truncate px-2">
+            <span className="font-bold text-primary truncate px-2 drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)]">
               {field.label}
             </span>
           </div>
@@ -70,17 +74,19 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
         return (
           <div
             key={`s-${i}`}
-            className={cn(
-              'absolute rounded-sm',
-              isHead
-                ? 'bg-primary shadow-[0_0_8px_var(--primary)]'
-                : 'bg-primary/60',
-            )}
+            className="absolute"
             style={{
-              left: seg.col * cellSize.w + 1,
-              top: seg.row * cellSize.h + 1,
-              width: cellSize.w - 2,
-              height: cellSize.h - 2,
+              left: seg.col * cellSize.w,
+              top: seg.row * cellSize.h,
+              width: cellSize.w,
+              height: cellSize.h,
+              backgroundColor: isHead ? '#4ade80' : '#22c55e',
+              borderStyle: 'solid',
+              borderWidth: '2px',
+              borderColor: isHead
+                ? '#86efac #166534 #166534 #86efac'
+                : '#4ade80 #14532d #14532d #4ade80',
+              boxShadow: isHead ? '0 0 8px #4ade80, inset 1px 1px 0 rgba(255,255,255,0.2)' : 'inset 1px 1px 0 rgba(255,255,255,0.1)',
             }}
           />
         )

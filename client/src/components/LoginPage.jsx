@@ -1,7 +1,6 @@
 // ============================================================
 //  LoginPage.jsx
-//  Figma-styled login form. Typing in password starts the snake game.
-//  Uses useSnakeGame hook + GameBoard (DOM) instead of canvas.
+//  Pixel-art styled login form. Typing in password starts the snake game.
 // ============================================================
 
 import { useRef, useCallback } from "react";
@@ -10,19 +9,7 @@ import { useSnakeGame } from "../hooks/useSnakeGame.js";
 import { GameBoard } from "./GameBoard.jsx";
 import { InputOverlay } from "./InputOverlay.jsx";
 import { cn } from "./ui/utils.js";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "./ui/card.jsx";
-import { Input } from "./ui/input.jsx";
-import { Label } from "./ui/label.jsx";
-import { Button } from "./ui/button.jsx";
 import { Badge } from "./ui/badge.jsx";
-import { Lock, Mail, User, LogIn } from "lucide-react";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -65,15 +52,17 @@ export function LoginPage() {
   }
 
     return (
-      <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
-        {/* ── Background: Animated blobs (Always visible) ── */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
-        </div>
+      <div className="relative w-full h-screen overflow-hidden" style={{ backgroundColor: '#1a1a2e' }}>
+        {/* ── Background: Pixel grid pattern ── */}
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }}
+        />
 
-        {/* ── Scatter phase: GameBoard with fields animating from form → random ── */}
+        {/* ── Scatter phase: GameBoard with fields animating from form -> random ── */}
         {scattering && (
           <GameBoard
             gameState={gameState}
@@ -83,63 +72,91 @@ export function LoginPage() {
           />
         )}
 
-        {/* ── Pre-game: Figma login form ── */}
+        {/* ── Pre-game: Pixel-art login form ── */}
         {!started && (
           <div className={cn(
             "absolute inset-0 flex items-center justify-center z-10 p-4 transition-opacity duration-500",
             scattering ? "opacity-0 pointer-events-none" : "opacity-100"
           )}>
-            <Card className="w-full max-w-md relative backdrop-blur-sm bg-white/80 shadow-2xl border-0">
-              <CardHeader className="space-y-1 text-center pb-4">
-                <div className="flex justify-center mb-4">
-                  <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
-                    <LogIn className="w-8 h-8 text-white" />
-                  </div>
+            <div className="w-full max-w-md pixel-bevel p-0" style={{ backgroundColor: '#25253e' }}>
+              {/* Title bar */}
+              <div className="flex items-center px-3 py-2" style={{
+                backgroundColor: '#4ade80',
+                borderBottom: '3px solid #166534',
+              }}>
+                <span className="text-xs font-bold" style={{ fontFamily: 'var(--font-pixel)', color: '#1a1a2e' }}>
+                  CREATE ACCOUNT
+                </span>
+                <div className="ml-auto flex gap-1">
+                  <div className="w-3 h-3 pixel-bevel" style={{ backgroundColor: '#ef4444' }} />
                 </div>
-                <CardTitle className="text-3xl">Create Account</CardTitle>
-                <CardDescription className="text-base">Fill in the form to sign up</CardDescription>
-              </CardHeader>
+              </div>
 
-              <CardContent className="space-y-4">
+              <div className="p-6 space-y-5">
+                <p className="text-center text-xs" style={{ fontFamily: 'var(--font-pixel)', color: '#9090b0' }}>
+                  Fill in the form to sign up
+                </p>
+
+                {/* Name field */}
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm">Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <Input id="name" type="text" placeholder="Your name" className="pl-10 h-11 bg-white" />
+                  <label className="text-xs text-primary block" style={{ fontFamily: 'var(--font-pixel)' }}>Name</label>
+                  <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
+                    <input
+                      type="text"
+                      placeholder="Your name"
+                      className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                      style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}
+                    />
                   </div>
                 </div>
+
+                {/* Email field */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <Input id="email" type="email" placeholder="you@example.com" className="pl-10 h-11 bg-white" />
+                  <label className="text-xs text-primary block" style={{ fontFamily: 'var(--font-pixel)' }}>Email</label>
+                  <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
+                    <input
+                      type="email"
+                      placeholder="you@example.com"
+                      className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                      style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}
+                    />
                   </div>
                 </div>
+
+                {/* Password field */}
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <Input
+                  <label className="text-xs text-primary block" style={{ fontFamily: 'var(--font-pixel)' }}>Password</label>
+                  <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
+                    <input
                       ref={passwordRef}
-                      id="password"
                       type="password"
                       placeholder="••••••••"
-                      className="pl-10 h-11 bg-white"
+                      className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                      style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}
                       onKeyDown={handlePasswordKeyDown}
                       onFocus={(e) => { e.target.placeholder = "Try typing..."; }}
                       onBlur={(e) => { e.target.placeholder = "••••••••"; }}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Go ahead, type your password...</p>
+                  <p className="text-muted-foreground" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem' }}>
+                    Go ahead, type your password...
+                  </p>
                 </div>
-              </CardContent>
 
-              <CardFooter className="flex flex-col space-y-4">
-                <Button type="button" className="w-full h-11 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md">
-                  <LogIn className="w-4 h-4 mr-2" /> Sign Up
-                </Button>
-              </CardFooter>
-            </Card>
+                {/* Sign up button */}
+                <button
+                  type="button"
+                  className="w-full py-2 px-4 pixel-bevel cursor-pointer text-xs font-bold"
+                  style={{
+                    fontFamily: 'var(--font-pixel)',
+                    backgroundColor: '#4ade80',
+                    color: '#1a1a2e',
+                  }}
+                >
+                  SIGN UP
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -149,7 +166,7 @@ export function LoginPage() {
             gameState={gameState}
             className={cn(
               "absolute inset-0 transition-colors duration-150 z-10",
-              isFlashing ? "bg-red-600/40" : "bg-transparent", // Made transparent so blobs show
+              isFlashing ? "bg-red-600/40" : "bg-transparent",
             )}
           />
         )}
@@ -157,8 +174,12 @@ export function LoginPage() {
         {/* HUD */}
         {started && (
           <div className="absolute top-4 right-4 z-20 flex gap-2">
-            <Badge variant="secondary" className="text-sm px-3 py-1.5 font-mono">{timerDisplay}</Badge>
-            <Badge variant="destructive" className="text-sm px-3 py-1.5 font-mono">Deaths: {deaths}</Badge>
+            <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: '#4ade80' }}>
+              {timerDisplay}
+            </div>
+            <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: '#ef4444' }}>
+              DEATHS: {deaths}
+            </div>
           </div>
         )}
 
@@ -169,21 +190,23 @@ export function LoginPage() {
         />
 
         {showFailed && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/90">
-            <Card className="text-center p-8 border-destructive border-2 shadow-[0_0_40px_rgba(255,68,68,0.3)]">
-              <CardContent className="space-y-2 pt-0">
-                <p className="text-4xl font-bold text-destructive font-mono">Time&apos;s up! You failed.</p>
-                <p className="text-lg text-muted-foreground font-mono">Starting again...</p>
-              </CardContent>
-            </Card>
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-30" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
+            <div className="pixel-bevel p-8 text-center" style={{ backgroundColor: '#25253e' }}>
+              <p className="text-destructive font-bold mb-2" style={{ fontFamily: 'var(--font-pixel)', fontSize: '1rem' }}>
+                TIME&apos;S UP!
+              </p>
+              <p className="text-muted-foreground" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}>
+                Starting again...
+              </p>
+            </div>
           </div>
         )}
 
         {showTooltip && started && !capturedField && (
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
-            <Badge variant="outline" className="px-4 py-2 text-sm animate-pulse font-mono bg-background/80 backdrop-blur-sm">
-              Use arrow keys or WASD to move! Chase the fields to fill them in.
-            </Badge>
+            <div className="pixel-bevel px-4 py-2 pixel-blink" style={{ backgroundColor: '#25253e', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#4ade80' }}>
+              USE ARROW KEYS OR WASD TO MOVE!
+            </div>
           </div>
         )}
       </div>

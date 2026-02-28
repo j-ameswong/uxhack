@@ -1,14 +1,9 @@
 // ============================================================
 //  InputOverlay.jsx
-//  Shows when snake captures a field. User types value, validates, resumes.
-//  Restyled with Figma design system components.
+//  Pixel-art styled input prompt when snake captures a field.
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react'
-import { Card, CardContent } from './ui/card.jsx'
-import { Input } from './ui/input.jsx'
-import { Label } from './ui/label.jsx'
-import { Button } from './ui/button.jsx'
 
 const VALIDATORS = {
   Name: (v) => (v.trim().length > 0 ? null : 'Name is required'),
@@ -16,7 +11,7 @@ const VALIDATORS = {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return re.test(v.trim()) ? null : 'Enter a valid email'
   },
-  Password: (v) => (v.length >= 8 ? null : 'Password must be at least 8 characters'),
+  Password: (v) => (v.length >= 8 ? null : 'Min 8 characters'),
 }
 
 export function InputOverlay({ field, onConfirm, onCancel, storedPassword }) {
@@ -58,45 +53,63 @@ export function InputOverlay({ field, onConfirm, onCancel, storedPassword }) {
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30">
-      <Card className="min-w-[300px] backdrop-blur-md bg-card/90 shadow-2xl border">
-        <CardContent className="space-y-3 pt-4 pb-4 px-5">
-          <Label htmlFor="field-input" className="text-sm">
+      <div className="pixel-bevel min-w-[320px]" style={{ backgroundColor: '#25253e' }}>
+        {/* Title bar */}
+        <div className="flex items-center px-3 py-1.5" style={{
+          backgroundColor: '#6366f1',
+          borderBottom: '3px solid #3730a3',
+        }}>
+          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#e0e0e0' }}>
+            ENTER {field.label.toUpperCase()}
+          </span>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <label className="block text-primary" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}>
             Enter your {field.label}:
-          </Label>
-          <Input
-            ref={inputRef}
-            id="field-input"
-            type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value)
-              setError(null)
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              field.label === 'Password'
-                ? 'min 8 characters'
-                : field.label === 'Verify Password'
-                  ? 're-enter password'
-                  : ''
-            }
-            aria-invalid={!!error}
-          />
+          </label>
+          <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
+            <input
+              ref={inputRef}
+              type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value)
+                setError(null)
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                field.label === 'Password'
+                  ? 'min 8 characters'
+                  : field.label === 'Verify Password'
+                    ? 're-enter password'
+                    : ''
+              }
+              className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+              style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}
+              aria-invalid={!!error}
+            />
+          </div>
           {error && (
-            <p className="text-xs text-destructive">
+            <p className="text-destructive" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem' }}>
               {error}
             </p>
           )}
-          <Button
+          <button
             type="button"
             onClick={handleConfirm}
-            size="sm"
-            className="w-full cursor-pointer"
+            className="w-full py-2 px-4 pixel-bevel cursor-pointer font-bold"
+            style={{
+              fontFamily: 'var(--font-pixel)',
+              fontSize: '0.625rem',
+              backgroundColor: '#4ade80',
+              color: '#1a1a2e',
+            }}
           >
-            Confirm (Enter)
-          </Button>
-        </CardContent>
-      </Card>
+            CONFIRM [ENTER]
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
