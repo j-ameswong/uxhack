@@ -55,7 +55,7 @@ export class Field {
    * DVD screensaver bounce: move diagonally each tick, bounce off walls.
    * If `snakeHead` is provided and this field is locked, flee aggressively.
    */
-  bounceStep(snakeHead) {
+  bounceStep(snakeHead, snakeBody) {
     if (this.captured) return
 
     const minCol = FIELD_MARGIN
@@ -92,6 +92,20 @@ export class Field {
     if (newRow <= minRow || newRow >= maxRow) {
       this.dRow *= -1
       newRow = Math.max(minRow, Math.min(maxRow, newRow))
+    }
+
+    // Bounce off snake body (excluding head) like a wall
+    if (snakeBody && snakeBody.length > 0) {
+      const overlaps = snakeBody.some(seg =>
+        seg.col >= newCol && seg.col < newCol + this.width &&
+        seg.row >= newRow && seg.row < newRow + this.height
+      )
+      if (overlaps) {
+        this.dCol *= -1
+        this.dRow *= -1
+        newCol = this.col
+        newRow = this.row
+      }
     }
 
     this.col = newCol

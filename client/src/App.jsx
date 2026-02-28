@@ -211,7 +211,7 @@ function SuccessPage() {
             />
           </div>
           <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '1rem', color: '#4ade80' }}>
-            SIGNUP SUCCESS!
+            "SIGNUP" SUCCESS!
           </div>
           <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>
             The snake has been fed.

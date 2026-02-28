@@ -133,10 +133,11 @@ export class GameEngine {
       this.snake.shift();
     }
 
-    // DVD bounce: fields drift diagonally and bounce off walls
+    // DVD bounce: fields drift diagonally and bounce off walls and snake body
     const snakeHead = this.snake[this.snake.length - 1];
+    const snakeBody = this.snake.slice(0, -1); // everything except the head
     for (const field of this.fields) {
-      field.bounceStep(snakeHead);
+      field.bounceStep(snakeHead, snakeBody);
     }
 
     // Separation pass: nudge any two overlapping fields apart
