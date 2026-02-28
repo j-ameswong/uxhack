@@ -1,23 +1,39 @@
-import { useCallback } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { useSnakeGame } from './hooks/useSnakeGame.js'
-import { LoginPage } from './components/LoginPage.jsx'
-import { InputOverlay } from './components/InputOverlay.jsx'
-import { GameBoard } from './components/GameBoard.jsx'
-import { GameProvider } from './context/GameContext.jsx'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from './components/ui/card.jsx'
-import { Button } from './components/ui/button.jsx'
-import { Badge } from './components/ui/badge.jsx'
-import { LeaderboardModal } from './components/LeaderboardModal.jsx'
+import { useCallback } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import { useSnakeGame } from "./hooks/useSnakeGame.js";
+import { LoginPage } from "./components/LoginPage.jsx";
+import { InputOverlay } from "./components/InputOverlay.jsx";
+import { GameBoard } from "./components/GameBoard.jsx";
+import { GameProvider } from "./context/GameContext.jsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "./components/ui/card.jsx";
+import { Button } from "./components/ui/button.jsx";
+import { Badge } from "./components/ui/badge.jsx";
+import { LeaderboardModal } from "./components/LeaderboardModal.jsx";
 
 // ── Game Page ────────────────────────────────────────────────
 
 function GamePage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const onComplete = useCallback((result) => {
-    navigate('/success', { state: result })
-  }, [navigate])
+  const onComplete = useCallback(
+    (result) => {
+      navigate("/success", { state: result });
+    },
+    [navigate],
+  );
 
   const {
     gameState,
@@ -30,7 +46,7 @@ function GamePage() {
     beginGame,
     handleInputConfirm,
     getFieldValue,
-  } = useSnakeGame({ onComplete })
+  } = useSnakeGame({ onComplete });
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
@@ -72,7 +88,10 @@ function GamePage() {
           <Badge variant="secondary" className="text-sm px-3 py-1.5 font-mono">
             {timerDisplay}
           </Badge>
-          <Badge variant="destructive" className="text-sm px-3 py-1.5 font-mono">
+          <Badge
+            variant="destructive"
+            className="text-sm px-3 py-1.5 font-mono"
+          >
             Deaths: {deaths}
           </Badge>
         </div>
@@ -98,35 +117,38 @@ function GamePage() {
       <InputOverlay
         field={capturedField}
         onConfirm={handleInputConfirm}
-        storedPassword={getFieldValue('Password')}
+        storedPassword={getFieldValue("Password")}
       />
 
       {/* Tooltip */}
       {showTooltip && started && !capturedField && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
-          <Badge variant="outline" className="px-4 py-2 text-sm animate-pulse font-mono bg-background/80 backdrop-blur-sm">
+          <Badge
+            variant="outline"
+            className="px-4 py-2 text-sm animate-pulse font-mono bg-background/80 backdrop-blur-sm"
+          >
             Use arrow keys or WASD to move! Chase the fields to fill them in.
           </Badge>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ── Success Page ─────────────────────────────────────────────
 
 function SuccessPage() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { rank, id, deaths, timeMs, submitError } = location.state ?? {}
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { rank, id, deaths, timeMs, submitError } = location.state ?? {};
 
   function formatTime(ms) {
-    if (ms == null) return '--:--'
-    const totalSeconds = Math.floor(ms / 1000)
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = totalSeconds % 60
-    const centis = Math.floor((ms % 1000) / 10)
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`
+    if (ms == null) return "--:--";
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const centis = Math.floor((ms % 1000) / 10);
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${centis.toString().padStart(2, "0")}`;
   }
 
   return (
@@ -140,30 +162,38 @@ function SuccessPage() {
 
       <Card className="relative max-w-lg w-full backdrop-blur-sm bg-white/80 shadow-2xl border-0 text-center">
         <CardHeader>
-          <div className="text-6xl mb-2">🎉</div>
-          <CardTitle className="text-3xl">You signed up!</CardTitle>
+          <div className="mb-2 flex justify-center">
+            <img
+              src="https://media.tenor.com/DpJdyKQKgYkAAAAi/cat-jump.gif"
+              style={{ width: 200, height: 200 }}
+            />
+          </div>
+          <CardTitle className="text-3xl">Signup Success!</CardTitle>
           <CardDescription className="text-base">
             The snake has been fed.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-center gap-3">
-              {rank != null && (
-                <Badge variant="secondary" className="text-sm px-3 py-1.5">
-                  Rank #{rank}
-                </Badge>
-              )}
-              {timeMs != null && (
-                <Badge variant="outline" className="text-sm px-3 py-1.5 font-mono">
-                  {formatTime(timeMs)}
-                </Badge>
-              )}
-              {deaths != null && (
-                <Badge variant="destructive" className="text-sm px-3 py-1.5">
-                  {deaths} death{deaths !== 1 ? 's' : ''}
-                </Badge>
-              )}
-            </div>
+            {rank != null && (
+              <Badge variant="secondary" className="text-sm px-3 py-1.5">
+                Rank #{rank}
+              </Badge>
+            )}
+            {timeMs != null && (
+              <Badge
+                variant="outline"
+                className="text-sm px-3 py-1.5 font-mono"
+              >
+                {formatTime(timeMs)}
+              </Badge>
+            )}
+            {deaths != null && (
+              <Badge variant="destructive" className="text-sm px-3 py-1.5">
+                {deaths} death{deaths !== 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
           {submitError && (
             <p className="text-sm text-muted-foreground">
               Couldn&apos;t save your score — server unavailable.
@@ -174,29 +204,37 @@ function SuccessPage() {
           )}
         </CardContent>
         <CardFooter className="justify-center">
-          <Button onClick={() => navigate('/game')} size="lg" className="cursor-pointer">
+          <Button
+            onClick={() => navigate("/game")}
+            size="lg"
+            className="cursor-pointer"
+          >
             Play Again
           </Button>
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
 
 // ── Leaderboard placeholder ──────────────────────────────────
 
 function LeaderboardPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6 gap-4">
       <div className="w-full max-w-md">
         <LeaderboardModal />
       </div>
-      <Button variant="outline" onClick={() => navigate('/')} className="cursor-pointer">
+      <Button
+        variant="outline"
+        onClick={() => navigate("/")}
+        className="cursor-pointer"
+      >
         Back
       </Button>
     </div>
-  )
+  );
 }
 
 // ── App root ─────────────────────────────────────────────────
@@ -213,5 +251,5 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </GameProvider>
-  )
+  );
 }
