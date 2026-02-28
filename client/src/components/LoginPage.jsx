@@ -33,6 +33,7 @@ export function LoginPage() {
   // Glitch flash state
   const [glitchFlash, setGlitchFlash] = useState(false);
   const glitchTimer = useRef(null);
+  const glitchPityCounter = useRef(0);
 
   const onComplete = useCallback(
     (result) => {
@@ -74,7 +75,9 @@ export function LoginPage() {
   }
 
   function maybeGlitch() {
-    if (Math.random() < 0.15) {
+    glitchPityCounter.current += 1;
+    if (Math.random() < 0.10 || glitchPityCounter.current >= 8) {
+      glitchPityCounter.current = 0;
       setGlitchFlash(true);
       clearTimeout(glitchTimer.current);
       glitchTimer.current = setTimeout(() => setGlitchFlash(false), 120);
@@ -220,7 +223,7 @@ export function LoginPage() {
                       handleFieldChange(setFormName, "name", e.target.value, (v) => v.trim().length > 0)
                     }
                     autoFocus
-                    className="bg-white/50"
+                    className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
                 </div>
@@ -242,7 +245,7 @@ export function LoginPage() {
                       )
                     }
                     disabled={!nameValid}
-                    className="bg-white/50"
+                    className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
                 </div>
@@ -262,7 +265,7 @@ export function LoginPage() {
                       handleFieldChange(setFormPassword, "password", e.target.value, (v) => v.length >= 1)
                     }
                     disabled={!emailValid}
-                    className="bg-white/50"
+                    className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
                 </div>

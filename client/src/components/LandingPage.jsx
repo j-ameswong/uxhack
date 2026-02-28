@@ -7,7 +7,7 @@ import {
   Smartphone,
   Users,
   Download,
-  Sparkles,
+  HeartCrack,
   ArrowRight,
   Check,
   Zap,
@@ -153,9 +153,9 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+              <HeartCrack className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-800">DesignFlow</span>
+            <span className="text-xl font-bold text-gray-800">Likeable</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <NavLink onClick={go}>Features</NavLink>
@@ -336,7 +336,7 @@ export function LandingPage() {
               "1 project",
               "Basic components",
               "Community support",
-              "DesignFlow subdomain",
+              "Likeable subdomain",
             ]}
             cta="Start Free"
             onClick={go}
@@ -377,10 +377,10 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+              <HeartCrack className="w-4 h-4 text-white" />
             </div>
             <span className="font-semibold text-gray-700 text-sm">
-              DesignFlow
+              Likeable
             </span>
           </div>
           <div className="flex gap-6 text-sm text-gray-500">
@@ -390,7 +390,7 @@ export function LandingPage() {
             <button onClick={go} className="hover:text-gray-800 cursor-pointer bg-transparent border-none" style={{ fontFamily: FONT }}>Careers</button>
           </div>
           <p className="text-xs text-gray-400" style={{ fontFamily: FONT }}>
-            &copy; 2026 DesignFlow, Inc. All rights reserved.
+            &copy; 2026 Likeable, Inc. All rights reserved.
           </p>
         </div>
       </footer>
