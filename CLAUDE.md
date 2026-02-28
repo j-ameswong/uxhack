@@ -182,23 +182,28 @@ Table: `submissions`
 
 ---
 
-### Stage 5 — Submit Flow & Backend Storage
+### Stage 5 — Submit Flow & Backend Storage ✅
 **Goal:** All three fields captured → Submit button → POST to server → rank returned.
 
-- [ ] After third field confirmed, show Submit button (or auto-submit on Enter)
-- [ ] On submit: collect `{ name, email, timeMs, deaths }`, POST to `POST /api/submit`
-- [ ] **Server — `server/db.js`:**
-  - [ ] Open SQLite database (`./data/snakeup.db`)
-  - [ ] `CREATE TABLE IF NOT EXISTS submissions (...)` on startup
-- [ ] **Server — `server/routes/submissions.js`:**
-  - [ ] Validate all fields (400 on failure)
-  - [ ] SHA-256 hash the email before storage (`crypto.createHash('sha256')`)
-  - [ ] Insert row into `submissions`
-  - [ ] Query rank: count rows with `time_ms < submitted`, or `time_ms = submitted AND deaths < submitted`
-  - [ ] Return `{ rank, id }` with status `201`
-- [ ] Client: on `201`, store rank in context, navigate to completion screen
-- [ ] Client: on error, show friendly message and preserve form values client-side
-- [ ] Verify: submission inserts to DB, rank is accurate
+- [x] After third field confirmed, auto-submit via "Verify Password" capture flow
+- [x] On submit: collect `{ name, email, timeMs, deaths }`, POST to `POST /api/submit`
+- [x] **Server — `server/db.js`:**
+  - [x] Open SQLite database (`./data/snakeup.db`)
+  - [x] `CREATE TABLE IF NOT EXISTS submissions (...)` on startup
+- [x] **Server — `server/routes/submissions.js`:**
+  - [x] Validate all fields (400 on failure)
+  - [x] SHA-256 hash the email before storage (`crypto.createHash('sha256')`)
+  - [x] Insert row into `submissions`
+  - [x] Query rank: count rows with `time_ms < submitted`, or `time_ms = submitted AND deaths < submitted`
+  - [x] Return `{ rank, id }` with status `201`
+- [x] Client: on `201`, store rank in context, navigate to completion screen
+- [x] Client: on error, show friendly message ("Couldn't save your score") and preserve form values client-side
+- [x] Verify: submission inserts to DB, rank is accurate
+
+**Implementation notes:**
+- After Name/Email/Password captured, engine spawns a "Verify Password" field at higher speed
+- Capturing Verify Password triggers the POST — no separate Submit button needed
+- `submitError` flag passed to SuccessPage for graceful degradation when server unavailable
 
 ---
 

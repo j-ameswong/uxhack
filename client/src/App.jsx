@@ -117,7 +117,7 @@ function GamePage() {
 function SuccessPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { rank, deaths, timeMs } = location.state ?? {}
+  const { rank, deaths, timeMs, submitError } = location.state ?? {}
 
   function formatTime(ms) {
     if (ms == null) return '--:--'
@@ -146,11 +146,12 @@ function SuccessPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {rank != null && (
-            <div className="flex justify-center gap-3">
-              <Badge variant="secondary" className="text-sm px-3 py-1.5">
-                Rank #{rank}
-              </Badge>
+          <div className="flex justify-center gap-3">
+              {rank != null && (
+                <Badge variant="secondary" className="text-sm px-3 py-1.5">
+                  Rank #{rank}
+                </Badge>
+              )}
               {timeMs != null && (
                 <Badge variant="outline" className="text-sm px-3 py-1.5 font-mono">
                   {formatTime(timeMs)}
@@ -162,6 +163,10 @@ function SuccessPage() {
                 </Badge>
               )}
             </div>
+          {submitError && (
+            <p className="text-sm text-muted-foreground">
+              Couldn&apos;t save your score — server unavailable.
+            </p>
           )}
         </CardContent>
         <CardFooter className="justify-center">

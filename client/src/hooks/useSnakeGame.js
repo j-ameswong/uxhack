@@ -82,6 +82,7 @@ export function useSnakeGame({ onComplete } = {}) {
         timeMs: elapsedMsRef.current,
       }
       let rank = null
+      let submitError = false
       try {
         const res = await fetch('/api/submit', {
           method: 'POST',
@@ -96,11 +97,13 @@ export function useSnakeGame({ onComplete } = {}) {
         if (res.ok) {
           const data = await res.json()
           rank = data.rank
+        } else {
+          submitError = true
         }
       } catch {
-        // Server unavailable — proceed without rank
+        submitError = true
       }
-      onComplete?.({ rank, ...snapshot })
+      onComplete?.({ rank, submitError, ...snapshot })
       return
     }
 
