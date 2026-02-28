@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useGameLoop } from './hooks/useGameLoop.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
+import { useTimer } from './hooks/useTimer.js'
 import { LoginPage } from './components/LoginPage.jsx'
 import { InputOverlay } from './components/InputOverlay.jsx'
 import { GameProvider, useGameContext } from './context/GameContext.jsx'
@@ -15,6 +16,8 @@ function GamePage() {
   const [started, setStarted] = useState(false)
   const [capturedField, setCapturedField] = useState(null)
   const [showTooltip, setShowTooltip] = useState(false)
+  const [showFailed, setShowFailed] = useState(false)
+  const [timerResetKey, setTimerResetKey] = useState(0)
   const { setFieldValue } = useGameContext()
 
   const handleDeath = useCallback(() => {
@@ -51,6 +54,8 @@ function GamePage() {
     const t = setTimeout(() => setShowTooltip(false), 2000)
     return () => clearTimeout(t)
   }, [showTooltip])
+
+  const { display: timerDisplay } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
 
   // ── Start on first interaction ────────────────────────────
   function handleStart() {
@@ -111,20 +116,64 @@ function GamePage() {
         </div>
       )}
 
-      {/* HUD — deaths counter */}
+      {/* HUD — timer + deaths */}
       {started && (
+        <div className="absolute top-4 right-4 z-10 flex gap-3">
+          <div
+            className="text-sm"
+            style={{
+              color: '#39ff14',
+              fontFamily: 'Courier New, monospace',
+              background: 'rgba(0,0,0,0.6)',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              border: '1px solid #1a4a0a',
+            }}
+          >
+            ⏱ {elapsedTime}
+          </div>
+          <div
+            className="text-sm"
+            style={{
+              color: '#39ff14',
+              fontFamily: 'Courier New, monospace',
+              background: 'rgba(0,0,0,0.6)',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              border: '1px solid #1a4a0a',
+            }}
+          >
+            💀 Deaths: {deaths}
+          </div>
+        </div>
+      )}
+
+      {/* Time's up — failed overlay */}
+      {showFailed && (
         <div
-          className="absolute top-4 right-4 z-10 text-sm"
-          style={{
-            color: '#39ff14',
-            fontFamily: 'Courier New, monospace',
-            background: 'rgba(0,0,0,0.6)',
-            padding: '6px 12px',
-            borderRadius: '4px',
-            border: '1px solid #1a4a0a',
-          }}
+          className="absolute inset-0 flex flex-col items-center justify-center z-30"
+          style={{ background: 'rgba(0,0,0,0.9)' }}
         >
-          💀 Deaths: {deaths}
+          <div
+            className="text-center p-8 rounded-xl"
+            style={{
+              border: '2px solid #ff4444',
+              boxShadow: '0 0 40px rgba(255,68,68,0.3)',
+            }}
+          >
+            <p
+              className="text-4xl font-bold mb-2"
+              style={{ color: '#ff4444', fontFamily: 'Courier New, monospace' }}
+            >
+              Time's up! You failed.
+            </p>
+            <p
+              className="text-lg"
+              style={{ color: '#888', fontFamily: 'monospace' }}
+            >
+              Starting again...
+            </p>
+          </div>
         </div>
       )}
 

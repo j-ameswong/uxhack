@@ -7,6 +7,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useGameLoop } from '../hooks/useGameLoop.js'
 import { useKeyboard } from '../hooks/useKeyboard.js'
+import { useTimer } from '../hooks/useTimer.js'
 import { useGameContext } from '../context/GameContext.jsx'
 import { InputOverlay } from './InputOverlay.jsx'
 
@@ -18,6 +19,8 @@ export function LoginPage() {
   const [gameStarted, setGameStarted] = useState(false)
   const [capturedField, setCapturedField] = useState(null)
   const [showTooltip, setShowTooltip] = useState(false)
+  const [showFailed, setShowFailed] = useState(false)
+  const [timerResetKey, setTimerResetKey] = useState(0)
   const { setFieldValue } = useGameContext()
 
   const handleDeath = useCallback(() => {
@@ -33,7 +36,7 @@ export function LoginPage() {
     setCapturedField(field)
   }, [])
 
-  const { engineRef, startGame, resetGame, resumeGame } = useGameLoop(canvasRef, {
+  const { engineRef, startGame, stopGame, resetGame, resumeGame } = useGameLoop(canvasRef, {
     onDeath: handleDeath,
     onFieldCaptured: handleFieldCaptured,
   })
@@ -44,9 +47,22 @@ export function LoginPage() {
     resumeGame()
   }, [setFieldValue, resumeGame])
 
+  const handleTimeUp = useCallback(() => {
+    setShowFailed(true)
+    stopGame()
+    setTimeout(() => {
+      setShowFailed(false)
+      resetGame()
+      setTimerResetKey(k => k + 1)
+      startGame()
+    }, 2000)
+  }, [stopGame, resetGame, startGame])
+
   useKeyboard(engineRef, gameStarted, {
     onLetterKey: () => setShowTooltip(true),
   })
+
+  const { display: timerDisplay } = useTimer(gameStarted, !!capturedField, handleTimeUp, timerResetKey)
 
   useEffect(() => {
     if (!showTooltip) return
@@ -195,18 +211,33 @@ export function LoginPage() {
 
       {/* HUD when game is running */}
       {gameStarted && (
-        <div
-          className="absolute top-4 right-4 z-20 text-sm"
-          style={{
-            color: '#39ff14',
-            fontFamily: 'Courier New, monospace',
-            background: 'rgba(0,0,0,0.6)',
-            padding: '6px 12px',
-            borderRadius: '4px',
-            border: '1px solid #1a4a0a',
-          }}
-        >
-          💀 Deaths: {deaths}
+        <div className="absolute top-4 right-4 z-20 flex gap-3">
+          <div
+            className="text-sm"
+            style={{
+              color: '#39ff14',
+              fontFamily: 'Courier New, monospace',
+              background: 'rgba(0,0,0,0.6)',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              border: '1px solid #1a4a0a',
+            }}
+          >
+            ⏱ {timerDisplay}
+          </div>
+          <div
+            className="text-sm"
+            style={{
+              color: '#39ff14',
+              fontFamily: 'Courier New, monospace',
+              background: 'rgba(0,0,0,0.6)',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              border: '1px solid #1a4a0a',
+            }}
+          >
+            💀 Deaths: {deaths}
+          </div>
         </div>
       )}
 
@@ -215,6 +246,35 @@ export function LoginPage() {
         field={capturedField}
         onConfirm={handleInputConfirm}
       />
+
+      {/* Time's up — failed overlay */}
+      {showFailed && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center z-30"
+          style={{ background: 'rgba(0,0,0,0.9)' }}
+        >
+          <div
+            className="text-center p-8 rounded-xl"
+            style={{
+              border: '2px solid #ff4444',
+              boxShadow: '0 0 40px rgba(255,68,68,0.3)',
+            }}
+          >
+            <p
+              className="text-4xl font-bold mb-2"
+              style={{ color: '#ff4444', fontFamily: 'Courier New, monospace' }}
+            >
+              Time's up! You failed.
+            </p>
+            <p
+              className="text-lg"
+              style={{ color: '#888', fontFamily: 'monospace' }}
+            >
+              Starting again...
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tooltip: letter key pressed when game active */}
       {showTooltip && gameStarted && !capturedField && (
