@@ -8,6 +8,9 @@ export const GRID_ROWS       = 30      // logical grid height
 
 export const TICK_RATE_MS    = 150     // ms per snake tick (initial)
 export const TICK_RATE_INCREASE_MS = 45 // ms faster per captured field
+
+// Verify-password phase — fixed speed, faster than normal
+export const VERIFY_TICK_RATE_MS = 80
 export const FLEE_RADIUS     = 8      // cells — flee AI activation distance
 export const SCATTER_DELAY_MS = 1500  // ms before fields scatter on load
 

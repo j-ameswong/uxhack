@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useGameLoop } from './hooks/useGameLoop.js'
+import { VERIFY_TICK_RATE_MS } from './game/constants.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
 import { useTimer } from './hooks/useTimer.js'
 import { LoginPage } from './components/LoginPage.jsx'
@@ -18,12 +19,15 @@ function GamePage() {
   const [showTooltip, setShowTooltip] = useState(false)
   const [showFailed, setShowFailed] = useState(false)
   const [timerResetKey, setTimerResetKey] = useState(0)
-  const { setFieldValue } = useGameContext()
+  const { setFieldValue, getFieldValue } = useGameContext()
+
+  const confirmedCountRef = useRef(0)
 
   const handleDeath = useCallback(() => {
     setIsAlive(false)
     setDeaths(d => d + 1)
     setCapturedField(null)
+    confirmedCountRef.current = 0
     setTimeout(() => {
       resetGame()
       setIsAlive(true)
@@ -42,8 +46,18 @@ function GamePage() {
   const handleInputConfirm = useCallback((field, value) => {
     setFieldValue(field.label, value)
     setCapturedField(null)
+
+    if (field.label !== 'Verify Password') {
+      confirmedCountRef.current += 1
+    }
+
+    if (confirmedCountRef.current >= 3 && field.label !== 'Verify Password') {
+      engineRef.current.tickRateMs = VERIFY_TICK_RATE_MS
+      engineRef.current.spawnVerifyField()
+    }
+
     resumeGame()
-  }, [setFieldValue, resumeGame])
+  }, [setFieldValue, resumeGame, engineRef])
 
   useKeyboard(engineRef, started, {
     onLetterKey: () => setShowTooltip(true),
@@ -181,6 +195,7 @@ function GamePage() {
       <InputOverlay
         field={capturedField}
         onConfirm={handleInputConfirm}
+        storedPassword={getFieldValue('Password')}
       />
 
       {/* Tooltip: letter key pressed */}

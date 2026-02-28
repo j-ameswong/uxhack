@@ -10,6 +10,7 @@ import { useKeyboard } from '../hooks/useKeyboard.js'
 import { useTimer } from '../hooks/useTimer.js'
 import { useGameContext } from '../context/GameContext.jsx'
 import { InputOverlay } from './InputOverlay.jsx'
+import { VERIFY_TICK_RATE_MS } from '../game/constants.js'
 
 export function LoginPage() {
   const canvasRef = useRef(null)
@@ -21,11 +22,14 @@ export function LoginPage() {
   const [showTooltip, setShowTooltip] = useState(false)
   const [showFailed, setShowFailed] = useState(false)
   const [timerResetKey, setTimerResetKey] = useState(0)
-  const { setFieldValue } = useGameContext()
+  const { setFieldValue, getFieldValue } = useGameContext()
+
+  const confirmedCountRef = useRef(0)
 
   const handleDeath = useCallback(() => {
     setDeaths(d => d + 1)
     setIsAlive(false)
+    confirmedCountRef.current = 0
     setTimeout(() => {
       resetGame()
       setIsAlive(true)
@@ -44,8 +48,18 @@ export function LoginPage() {
   const handleInputConfirm = useCallback((field, value) => {
     setFieldValue(field.label, value)
     setCapturedField(null)
+
+    if (field.label !== 'Verify Password') {
+      confirmedCountRef.current += 1
+    }
+
+    if (confirmedCountRef.current >= 3 && field.label !== 'Verify Password') {
+      engineRef.current.tickRateMs = VERIFY_TICK_RATE_MS
+      engineRef.current.spawnVerifyField()
+    }
+
     resumeGame()
-  }, [setFieldValue, resumeGame])
+  }, [setFieldValue, resumeGame, engineRef])
 
   const handleTimeUp = useCallback(() => {
     setShowFailed(true)
@@ -245,6 +259,7 @@ export function LoginPage() {
       <InputOverlay
         field={capturedField}
         onConfirm={handleInputConfirm}
+        storedPassword={getFieldValue('Password')}
       />
 
       {/* Time's up — failed overlay */}

@@ -1,5 +1,5 @@
 import { GRID_COLS, GRID_ROWS, TICK_RATE_MS, TICK_RATE_INCREASE_MS } from './constants.js';
-import { createInitialFields } from './fields.js';
+import { createInitialFields, createVerifyField } from './fields.js';
 
 const DIRECTIONS = {
   up: { col: 0, row: -1 },
@@ -128,6 +128,11 @@ export class GameEngine {
     }
 
     return { snake: [...this.snake], fields: this.fields, gameOver: false };
+  }
+
+  /** Spawn the verify-password field after all 3 main fields are confirmed. */
+  spawnVerifyField() {
+    this.fields.push(createVerifyField())
   }
 
   getState() {

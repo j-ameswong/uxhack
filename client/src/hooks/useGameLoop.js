@@ -19,7 +19,7 @@ import { TICK_RATE_MS } from '../game/constants.js'
  * @returns {{ engineRef, startGame, stopGame, resetGame, resumeGame }}
  */
 export function useGameLoop(canvasRef, callbacks = {}) {
-  const engineRef  = useRef(null)
+  const engineRef    = useRef(null)
   const callbacksRef = useRef(callbacks)
   callbacksRef.current = callbacks
 

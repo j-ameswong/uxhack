@@ -99,6 +99,27 @@ export class Field {
 }
 
 /**
+ * Create the bonus "Verify Password" field at a random position.
+ * Called after all three initial fields are captured and confirmed.
+ */
+export function createVerifyField() {
+  const centerCol = Math.floor(GRID_COLS / 2)
+  const centerRow = Math.floor(GRID_ROWS / 2)
+  const avoidRadius = 6
+  let col, row, attempts = 0
+  do {
+    col = FIELD_MARGIN + Math.floor(Math.random() * (GRID_COLS - 2 * FIELD_MARGIN - FIELD_WIDTH))
+    row = FIELD_MARGIN + Math.floor(Math.random() * (GRID_ROWS - 2 * FIELD_MARGIN - FIELD_HEIGHT))
+    attempts++
+    if (attempts > 50) break
+  } while (
+    Math.abs(col + FIELD_WIDTH / 2 - centerCol) < avoidRadius &&
+    Math.abs(row + FIELD_HEIGHT / 2 - centerRow) < avoidRadius
+  )
+  return new Field({ col, row, label: 'Verify Password' })
+}
+
+/**
  * Create three fields with random positions, avoiding the center (snake spawn).
  */
 export function createInitialFields() {

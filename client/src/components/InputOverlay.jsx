@@ -14,7 +14,7 @@ const VALIDATORS = {
   Password: (v) => (v.length >= 8 ? null : 'Password must be at least 8 characters'),
 }
 
-export function InputOverlay({ field, onConfirm, onCancel }) {
+export function InputOverlay({ field, onConfirm, onCancel, storedPassword }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
@@ -24,7 +24,10 @@ export function InputOverlay({ field, onConfirm, onCancel }) {
   }, [field])
 
   function handleConfirm() {
-    const validator = VALIDATORS[field?.label]
+    const isVerify = field?.label === 'Verify Password'
+    const validator = isVerify
+      ? (v) => (v === storedPassword ? null : 'Passwords do not match')
+      : VALIDATORS[field?.label]
     const err = validator ? validator(value) : null
     setError(err)
 
@@ -68,14 +71,14 @@ export function InputOverlay({ field, onConfirm, onCancel }) {
       </label>
       <input
         ref={inputRef}
-        type={field.label === 'Password' ? 'password' : 'text'}
+        type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
         value={value}
         onChange={(e) => {
           setValue(e.target.value)
           setError(null)
         }}
         onKeyDown={handleKeyDown}
-        placeholder={field.label === 'Password' ? 'min 8 characters' : ''}
+        placeholder={field.label === 'Password' ? 'min 8 characters' : field.label === 'Verify Password' ? 're-enter password' : ''}
         className="w-full px-4 py-2 rounded border"
         style={{
           background: '#0a0a0a',

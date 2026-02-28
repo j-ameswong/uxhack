@@ -90,6 +90,7 @@ Table: `submissions`
 | Constant | Default | Description |
 |---|---|---|
 | `TICK_RATE_MS` | 150 | Milliseconds per snake tick |
+| `TICK_RATE_INCREASE_MS` | 45 | Speed increase per captured field (floored at 50 ms/tick) |
 | `FLEE_RADIUS` | 8 | Grid cells — flee AI activation distance |
 | `GRID_COLS` | 40 | Logical grid width |
 | `GRID_ROWS` | 30 | Logical grid height |
@@ -140,17 +141,17 @@ Table: `submissions`
 
 ---
 
-### Stage 3 — Fleeing Field Entities
+### Stage 3 — Fleeing Field Entities ✅
 **Goal:** Three field entities on the grid with functional flee AI.
 
-- [ ] Create `client/src/game/fields.js` — `Field` class / factory with:
-  - [ ] Grid position state
-  - [ ] `label` property (`"Name"`, `"Email"`, `"Password"`)
-  - [ ] `fleeStep(snakeHeadPos)` — moves one cell away from head if within `FLEE_RADIUS`; clamps to grid bounds with margin
-- [ ] Integrate fields into `GameEngine` — initialise three `Field` instances with random start positions
-- [ ] Call `field.fleeStep()` for each field each tick
-- [ ] Draw fields on canvas as distinct rectangles with label text
-- [ ] Verify: fields visibly flee when snake approaches, stay within bounds
+- [x] Create `client/src/game/fields.js` — `Field` class / factory with:
+  - [x] Grid position state
+  - [x] `label` property (`"Name"`, `"Email"`, `"Password"`)
+  - [x] `fleeStep(snakeHeadPos)` — moves one cell away from head if within `FLEE_RADIUS`; clamps to grid bounds with margin
+- [x] Integrate fields into `GameEngine` — initialise three `Field` instances with random start positions
+- [x] Call `field.fleeStep()` for each field each tick
+- [x] Draw fields on canvas as distinct rectangles with label text
+- [x] Verify: fields visibly flee when snake approaches, stay within bounds
 
 ---
 
@@ -172,6 +173,12 @@ Table: `submissions`
   - [x] On invalid: show inline error, do not resume
 - [x] Tooltip: if user presses a letter key when no field is captured and game is active, show mocked tooltip
 - [x] Verify: capture flow end-to-end, validation errors, game resumes correctly
+
+**Additional features added during Stage 4:**
+- `client/src/context/GameContext.jsx` — React context storing captured form values (name, email, password)
+- `client/src/components/LoginPage.jsx` — entry screen; password field click triggers the game
+- `client/src/hooks/useTimer.js` — timer hook tracking elapsed ms, pauseable during input mode
+- Snake speeds up by `TICK_RATE_INCREASE_MS` per captured field (resets on death); keyboard events guarded against INPUT/TEXTAREA targets so typed characters don't leak into snake direction
 
 ---
 
