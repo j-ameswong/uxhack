@@ -68,6 +68,10 @@ export function useSnakeGame({ onComplete } = {}) {
   const { display: timerDisplay, elapsedMs } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
   elapsedMsRef.current = elapsedMs
 
+  const handleCharTyped = useCallback((char) => {
+    engineRef.current?.growTail(char)
+  }, [engineRef])
+
   const handleInputConfirm = useCallback(async (field, value) => {
     setFieldValue(field.label, value)
     setCapturedField(null)
@@ -133,7 +137,7 @@ export function useSnakeGame({ onComplete } = {}) {
     // Phase 1: show GameBoard with fields at form positions, then rapid shuffle
     setScattering(true)
     // Start rapid scatter interval after first frame (so form positions render)
-    const SHUFFLE_INTERVAL = 250 // ms between each shuffle
+    const SHUFFLE_INTERVAL = 500 // ms between each shuffle
     let intervalId
     requestAnimationFrame(() => {
       engineRef.current?.scatterFields()
@@ -164,6 +168,7 @@ export function useSnakeGame({ onComplete } = {}) {
     beginGame,
     stopGame,
     handleInputConfirm,
+    handleCharTyped,
     getFieldValue,
   }
 }

@@ -27,6 +27,7 @@ export class GameEngine {
     this.tickCount = 0;
     this.capturedCount = 0;
     this.tickRateMs = TICK_RATE_MS;
+    this.pendingGrowth = 0;
     this.fields = createFormPositionFields();
     this._resetSnake();
   }
@@ -42,6 +43,7 @@ export class GameEngine {
     this.direction = 'right';
     this.nextDirection = null;
     this.capturedCount = 0;
+    this.pendingGrowth = 0;
     this.tickRateMs = TICK_RATE_MS;
     // Scatter fields to new random positions on death (Stage 3+)
     this.fields = createInitialFields();
@@ -121,6 +123,9 @@ export class GameEngine {
       this.tickRateMs = Math.max(20, TICK_RATE_MS - this.capturedCount * TICK_RATE_INCREASE_MS);
       this.onFieldCaptured(capturedField);
       this.stop(); // Pause game loop — resume when user confirms input
+    } else if (this.pendingGrowth > 0) {
+      // Don't remove tail — absorb one pending growth segment
+      this.pendingGrowth -= 1;
     } else {
       this.snake.shift();
     }
@@ -152,6 +157,21 @@ export class GameEngine {
   /** Spawn the verify-password field after all 3 main fields are confirmed. */
   spawnVerifyField() {
     this.fields.push(createVerifyField())
+  }
+
+  /** Add a labelled segment at the tail and mark it as permanent growth. */
+  growTail(char) {
+    const tail = this.snake[0];
+    let newSeg;
+    if (this.snake.length >= 2) {
+      const next = this.snake[1];
+      newSeg = { col: tail.col - (next.col - tail.col), row: tail.row - (next.row - tail.row), char };
+    } else {
+      newSeg = { col: tail.col - 1, row: tail.row, char };
+    }
+    this.snake.unshift(newSeg);
+    this.pendingGrowth += 1;
+    this.onTick({ snake: [...this.snake], fields: this.fields, gameOver: false });
   }
 
   getState() {

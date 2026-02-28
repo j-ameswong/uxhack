@@ -74,7 +74,7 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
         return (
           <div
             key={`s-${i}`}
-            className="absolute"
+            className="absolute flex items-center justify-center select-none"
             style={{
               left: seg.col * cellSize.w,
               top: seg.row * cellSize.h,
@@ -88,7 +88,19 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
                 : '#4ade80 #14532d #14532d #4ade80',
               boxShadow: isHead ? '0 0 8px #4ade80, inset 1px 1px 0 rgba(255,255,255,0.2)' : 'inset 1px 1px 0 rgba(255,255,255,0.1)',
             }}
-          />
+          >
+            {seg.char && (
+              <span style={{
+                fontFamily: 'var(--font-pixel)',
+                fontSize: Math.max(6, Math.min(cellSize.w * 0.6, cellSize.h * 0.6)),
+                color: '#1a1a2e',
+                fontWeight: 'bold',
+                lineHeight: 1,
+              }}>
+                {seg.char}
+              </span>
+            )}
+          </div>
         )
       })}
     </div>

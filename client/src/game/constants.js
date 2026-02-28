@@ -10,8 +10,8 @@ export const TICK_RATE_MS    = 40     // ms per snake tick (initial)
 export const TICK_RATE_INCREASE_MS = 15 // ms faster per captured field
 
 // Verify-password phase — fixed speed, faster than normal
-export const VERIFY_TICK_RATE_MS = 5
-export const SCATTER_DELAY_MS = 1500  // ms before fields scatter on load
+export const VERIFY_TICK_RATE_MS = 20
+export const SCATTER_DELAY_MS = 3000  // ms total shuffle duration before game starts
 
 // Visual
 export const CELL_PADDING    = 1      // px gap between cells when drawing

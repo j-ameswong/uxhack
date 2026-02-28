@@ -14,7 +14,7 @@ const VALIDATORS = {
   Password: (v) => (v.length >= 8 ? null : 'Min 8 characters'),
 }
 
-export function InputOverlay({ field, onConfirm, onCancel, storedPassword }) {
+export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, storedPassword }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
@@ -22,6 +22,19 @@ export function InputOverlay({ field, onConfirm, onCancel, storedPassword }) {
   useEffect(() => {
     inputRef.current?.focus()
   }, [field])
+
+  function handleChange(e) {
+    const newVal = e.target.value
+    // Detect added characters (typed, not deleted)
+    if (newVal.length > value.length) {
+      const added = newVal.slice(value.length)
+      for (const ch of added) {
+        onCharTyped?.(ch)
+      }
+    }
+    setValue(newVal)
+    setError(null)
+  }
 
   function handleConfirm() {
     const isVerify = field?.label === 'Verify Password'
@@ -73,10 +86,7 @@ export function InputOverlay({ field, onConfirm, onCancel, storedPassword }) {
               ref={inputRef}
               type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
               value={value}
-              onChange={(e) => {
-                setValue(e.target.value)
-                setError(null)
-              }}
+              onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder={
                 field.label === 'Password'

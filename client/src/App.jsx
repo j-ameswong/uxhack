@@ -35,6 +35,7 @@ function GamePage() {
     timerDisplay,
     beginGame,
     handleInputConfirm,
+    handleCharTyped,
     getFieldValue,
   } = useSnakeGame({ onComplete });
 
@@ -111,6 +112,7 @@ function GamePage() {
       <InputOverlay
         field={capturedField}
         onConfirm={handleInputConfirm}
+        onCharTyped={handleCharTyped}
         storedPassword={getFieldValue("Password")}
       />
 

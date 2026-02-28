@@ -34,6 +34,7 @@ export function LoginPage() {
     isFlashing,
     beginGame,
     handleInputConfirm,
+    handleCharTyped,
     getFieldValue,
   } = useSnakeGame({ onComplete });
 
@@ -186,6 +187,7 @@ export function LoginPage() {
         <InputOverlay
           field={capturedField}
           onConfirm={handleInputConfirm}
+          onCharTyped={handleCharTyped}
           storedPassword={getFieldValue("Password")}
         />
 
