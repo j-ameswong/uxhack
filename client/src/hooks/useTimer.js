@@ -84,5 +84,6 @@ export function useTimer(isRunning, isPaused, onTimeUp, resetTrigger = 0) {
   return {
     display: formatRemaining(remainingMs),
     isExpired: remainingMs <= 0,
+    elapsedMs: Math.max(0, COUNTDOWN_SECONDS * 1000 - remainingMs),
   }
 }

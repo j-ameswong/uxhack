@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useGameLoop } from './hooks/useGameLoop.js'
 import { VERIFY_TICK_RATE_MS } from './game/constants.js'
 import { useKeyboard } from './hooks/useKeyboard.js'
@@ -8,20 +8,24 @@ import { LoginPage } from './components/LoginPage.jsx'
 import { InputOverlay } from './components/InputOverlay.jsx'
 import { GameProvider, useGameContext } from './context/GameContext.jsx'
 
-// ── Game Page (direct play) ─────────────────────────────────────
+// ── Game Page ────────────────────────────────────────────────
 
 function GamePage() {
   const canvasRef  = useRef(null)
-  const [deaths, setDeaths]   = useState(0)
-  const [isAlive, setIsAlive] = useState(true)
-  const [started, setStarted] = useState(false)
+  const navigate   = useNavigate()
+  const [deaths, setDeaths]             = useState(0)
+  const [isAlive, setIsAlive]           = useState(true)
+  const [started, setStarted]           = useState(false)
   const [capturedField, setCapturedField] = useState(null)
-  const [showTooltip, setShowTooltip] = useState(false)
-  const [showFailed, setShowFailed] = useState(false)
+  const [showTooltip, setShowTooltip]   = useState(false)
+  const [showFailed, setShowFailed]     = useState(false)
   const [timerResetKey, setTimerResetKey] = useState(0)
   const { setFieldValue, getFieldValue } = useGameContext()
 
   const confirmedCountRef = useRef(0)
+  const elapsedMsRef      = useRef(0)
+  const deathsRef         = useRef(0)
+  deathsRef.current = deaths
 
   const handleDeath = useCallback(() => {
     setIsAlive(false)
@@ -43,7 +47,24 @@ function GamePage() {
     onFieldCaptured: handleFieldCaptured,
   })
 
-  const handleInputConfirm = useCallback((field, value) => {
+  // handleTimeUp must come after useGameLoop so resetGame is available
+  const handleTimeUp = useCallback(() => {
+    setCapturedField(null)
+    setShowFailed(true)
+    engineRef.current?.stop()
+    setDeaths(d => d + 1)
+    confirmedCountRef.current = 0
+    setTimeout(() => {
+      setShowFailed(false)
+      setTimerResetKey(k => k + 1)
+      resetGame()
+    }, 1500)
+  }, [engineRef, resetGame])
+
+  const { display: timerDisplay, elapsedMs } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
+  elapsedMsRef.current = elapsedMs
+
+  const handleInputConfirm = useCallback(async (field, value) => {
     setFieldValue(field.label, value)
     setCapturedField(null)
 
@@ -54,10 +75,41 @@ function GamePage() {
     if (confirmedCountRef.current >= 3 && field.label !== 'Verify Password') {
       engineRef.current.tickRateMs = VERIFY_TICK_RATE_MS
       engineRef.current.spawnVerifyField()
+      resumeGame()
+      return
+    }
+
+    if (field.label === 'Verify Password') {
+      engineRef.current?.stop()
+      const snapshot = {
+        deaths: deathsRef.current,
+        timeMs: elapsedMsRef.current,
+      }
+      let rank = null
+      try {
+        const res = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name:   getFieldValue('Name'),
+            email:  getFieldValue('Email'),
+            timeMs: snapshot.timeMs,
+            deaths: snapshot.deaths,
+          }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          rank = data.rank
+        }
+      } catch {
+        // Server unavailable — proceed to success page without rank
+      }
+      navigate('/success', { state: { rank, ...snapshot } })
+      return
     }
 
     resumeGame()
-  }, [setFieldValue, resumeGame, engineRef])
+  }, [setFieldValue, resumeGame, engineRef, getFieldValue, navigate])
 
   useKeyboard(engineRef, started, {
     onLetterKey: () => setShowTooltip(true),
@@ -69,9 +121,6 @@ function GamePage() {
     return () => clearTimeout(t)
   }, [showTooltip])
 
-  const { display: timerDisplay } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
-
-  // ── Start on first interaction ────────────────────────────
   function handleStart() {
     setStarted(true)
     startGame()
@@ -144,7 +193,7 @@ function GamePage() {
               border: '1px solid #1a4a0a',
             }}
           >
-            ⏱ {elapsedTime}
+            ⏱ {timerDisplay}
           </div>
           <div
             className="text-sm"
@@ -179,19 +228,16 @@ function GamePage() {
               className="text-4xl font-bold mb-2"
               style={{ color: '#ff4444', fontFamily: 'Courier New, monospace' }}
             >
-              Time's up! You failed.
+              Time&apos;s up! You failed.
             </p>
-            <p
-              className="text-lg"
-              style={{ color: '#888', fontFamily: 'monospace' }}
-            >
+            <p className="text-lg" style={{ color: '#888', fontFamily: 'monospace' }}>
               Starting again...
             </p>
           </div>
         </div>
       )}
 
-      {/* Stage 4: Input overlay when field captured */}
+      {/* Input overlay when field captured */}
       <InputOverlay
         field={capturedField}
         onConfirm={handleInputConfirm}
@@ -212,6 +258,78 @@ function GamePage() {
           Use arrow keys or WASD to move! Chase the fields to fill them in.
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Success Page (placeholder) ────────────────────────────────
+
+function SuccessPage() {
+  const location = useLocation()
+  const navigate  = useNavigate()
+  const { rank, deaths, timeMs } = location.state ?? {}
+
+  function formatTime(ms) {
+    if (ms == null) return '—'
+    const totalSeconds = Math.floor(ms / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    const centis  = Math.floor((ms % 1000) / 10)
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`
+  }
+
+  return (
+    <div
+      className="flex items-center justify-center h-screen"
+      style={{ background: '#0a0a0a', fontFamily: 'Courier New, monospace' }}
+    >
+      <div
+        className="text-center p-10 rounded-xl"
+        style={{
+          border: '2px solid #39ff14',
+          boxShadow: '0 0 60px rgba(57,255,20,0.2)',
+          maxWidth: '480px',
+          width: '90%',
+        }}
+      >
+        <div className="text-6xl mb-4">🎉</div>
+        <h1
+          className="text-3xl font-bold mb-2"
+          style={{ color: '#39ff14', letterSpacing: '0.05em' }}
+        >
+          You&apos;ve signed up successfully!
+        </h1>
+        <p className="mb-6" style={{ color: '#666' }}>
+          The snake has been fed.
+        </p>
+        {rank != null && (
+          <div className="mb-6 flex flex-col gap-1" style={{ color: '#aaa' }}>
+            <p>Rank: <span style={{ color: '#39ff14' }}>#{rank}</span></p>
+            {timeMs != null && (
+              <p>Time: <span style={{ color: '#39ff14' }}>{formatTime(timeMs)}</span></p>
+            )}
+            {deaths != null && (
+              <p>Deaths: <span style={{ color: '#39ff14' }}>{deaths}</span></p>
+            )}
+          </div>
+        )}
+        <button
+          onClick={() => navigate('/game')}
+          style={{
+            background: '#39ff14',
+            color: '#000',
+            border: 'none',
+            padding: '10px 24px',
+            borderRadius: '4px',
+            fontFamily: 'Courier New, monospace',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          Play Again
+        </button>
+      </div>
     </div>
   )
 }
@@ -238,6 +356,7 @@ export default function App() {
         <Routes>
           <Route path="/"            element={<LoginPage />} />
           <Route path="/game"        element={<GamePage />} />
+          <Route path="/success"     element={<SuccessPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
         </Routes>
       </BrowserRouter>
