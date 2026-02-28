@@ -9,7 +9,8 @@ import { useGameLoop } from './useGameLoop.js'
 import { useKeyboard } from './useKeyboard.js'
 import { useTimer } from './useTimer.js'
 import { useGameContext } from '../context/GameContext.jsx'
-import { VERIFY_TICK_RATE_MS, SCATTER_DELAY_MS } from '../game/constants.js'
+import { VERIFY_TICK_RATE_MS, GRID_COLS, GRID_ROWS } from '../game/constants.js'
+import { generateSpacedPositions } from '../game/fields.js'
 
 /**
  * @param {{ onComplete?: (result: { rank, deaths, timeMs }) => void }} options
@@ -159,39 +160,101 @@ export function useSnakeGame({ onComplete } = {}) {
     return () => clearTimeout(t)
   }, [showTooltip])
 
-  const CARD_FADE_MS = 600   // card fades out over this duration
-  const BLOB_LINGER_MS = 1500 // blobs stay visible after card is gone
+  const CARD_FADE_MS = 600      // card fades out over this duration
+  const BLOB_LINGER_MS = 1500   // blobs stay visible after card is gone
+  const APPEAR_DELAY_MS = 1000  // fields sit at form positions before spiral
+  const SPIRAL_DURATION_MS = 2000
+  const SPIRAL_ROTATIONS = 2
+  const SPIRAL_AMPLITUDE = 0.35 // fraction of distance for spiral radius
 
   const beginGame = useCallback(() => {
     // Phase 1: fade out the card, keep blobs visible
     setCardFading(true)
 
-    // Phase 2: after card gone + blob linger, transition to game world
+    // Phase 2: after card gone + blob linger, show fields at form positions
     setTimeout(() => {
       setCardFading(false)
       setScattering(true)
-      // Rapid shuffle of field positions
-      const SHUFFLE_INTERVAL = 500
-      let intervalId
-      requestAnimationFrame(() => {
-        engineRef.current?.scatterFields()
-        intervalId = setInterval(() => {
-          engineRef.current?.scatterFields()
-        }, SHUFFLE_INTERVAL)
-      })
-      // Phase 3: stop shuffling, countdown, then start
+
+      // Phase 3: after a pause, spiral fields out to their game positions
       setTimeout(() => {
-        clearInterval(intervalId)
-        setScattering(false)
-        setStarted(true)
-        setDeathCountdown(3)
-        setTimeout(() => setDeathCountdown(2), 1000)
-        setTimeout(() => setDeathCountdown(1), 2000)
-        setTimeout(() => {
-          setDeathCountdown(null)
-          startGame()
-        }, 3000)
-      }, SCATTER_DELAY_MS)
+        const engine = engineRef.current
+        if (!engine) return
+
+        // Snapshot starting positions and generate well-spaced targets
+        const starts = engine.fields.map(f => ({ col: f.col, row: f.row }))
+        const targets = generateSpacedPositions(engine.fields)
+        const startTime = performance.now()
+
+        function animateSpiral(now) {
+          const elapsed = now - startTime
+          const rawT = Math.min(elapsed / SPIRAL_DURATION_MS, 1)
+          // Ease-in quintic — very slow start, dramatic acceleration
+          const t = rawT * rawT * rawT * rawT * rawT
+
+          for (let i = 0; i < engine.fields.length; i++) {
+            const field = engine.fields[i]
+            if (field.captured) continue
+
+            const s = starts[i]
+            const e = targets[i]
+            const dx = e.col - s.col
+            const dy = e.row - s.row
+            const dist = Math.sqrt(dx * dx + dy * dy)
+
+            // Base interpolation using eased t
+            const baseCol = s.col + t * dx
+            const baseRow = s.row + t * dy
+
+            // Spiral offset: sin envelope peaks mid-animation, collapses to 0 at end
+            const amplitude = Math.max(6, dist * SPIRAL_AMPLITUDE)
+            const envelope = Math.sin(rawT * Math.PI)
+            const angle = rawT * SPIRAL_ROTATIONS * 2 * Math.PI
+
+            // Use floats for smooth sub-cell positioning
+            const newCol = baseCol + amplitude * envelope * Math.cos(angle)
+            const newRow = baseRow + amplitude * envelope * Math.sin(angle)
+
+            // Clamp to grid bounds
+            field.col = Math.max(0, Math.min(GRID_COLS - field.width, newCol))
+            field.row = Math.max(0, Math.min(GRID_ROWS - field.height, newRow))
+          }
+
+          engine.onTick({
+            snake: [...engine.snake],
+            fields: engine.fields,
+            gameOver: false,
+          })
+
+          if (rawT < 1) {
+            requestAnimationFrame(animateSpiral)
+          } else {
+            // Snap to final integer positions
+            for (let i = 0; i < engine.fields.length; i++) {
+              engine.fields[i].col = Math.round(targets[i].col)
+              engine.fields[i].row = Math.round(targets[i].row)
+            }
+            engine.onTick({
+              snake: [...engine.snake],
+              fields: engine.fields,
+              gameOver: false,
+            })
+
+            // Phase 4: countdown then start
+            setScattering(false)
+            setStarted(true)
+            setDeathCountdown(3)
+            setTimeout(() => setDeathCountdown(2), 1000)
+            setTimeout(() => setDeathCountdown(1), 2000)
+            setTimeout(() => {
+              setDeathCountdown(null)
+              startGame()
+            }, 3000)
+          }
+        }
+
+        requestAnimationFrame(animateSpiral)
+      }, APPEAR_DELAY_MS)
     }, CARD_FADE_MS + BLOB_LINGER_MS)
   }, [startGame, engineRef])
 

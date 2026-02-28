@@ -17,6 +17,7 @@ import { Input } from "./ui/input.jsx";
 import { Label } from "./ui/label.jsx";
 import { Button } from "./ui/button.jsx";
 import { Lock, Mail, User, LogIn } from "lucide-react";
+import { GRID_COLS, GRID_ROWS } from "../game/constants.js";
 
 const FIELD_NAMES = ["name", "email", "password"];
 
@@ -55,6 +56,7 @@ export function LoginPage() {
   );
 
   const {
+    engineRef,
     gameState,
     deaths,
     started,
@@ -128,6 +130,30 @@ export function LoginPage() {
   function handleSubmit(e) {
     e.preventDefault();
     if (!canSubmit || started) return;
+
+    // Measure actual form input positions and align game fields to match
+    const cellW = window.innerWidth / GRID_COLS;
+    const cellH = window.innerHeight / GRID_ROWS;
+    const fields = engineRef.current?.fields;
+
+    if (fields) {
+      ['name', 'email', 'password'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (el && fields[i]) {
+          const rect = el.getBoundingClientRect();
+          // Center the game field on the form input's center
+          fields[i].col = Math.round((rect.left + rect.width / 2) / cellW - fields[i].width / 2);
+          fields[i].row = Math.round((rect.top + rect.height / 2) / cellH - fields[i].height / 2);
+        }
+      });
+      // Push updated positions to game state
+      engineRef.current.onTick({
+        snake: [...engineRef.current.snake],
+        fields: engineRef.current.fields,
+        gameOver: false,
+      });
+    }
+
     beginGame();
   }
 
@@ -201,7 +227,7 @@ export function LoginPage() {
         <GameBoard
           gameState={gameState}
           showSnake={false}
-          animateFields={true}
+          animateFields={false}
           className="absolute inset-0 z-[5] bg-transparent"
         />
       )}

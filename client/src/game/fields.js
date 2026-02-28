@@ -183,6 +183,62 @@ export function createFormPositionFields() {
 }
 
 /**
+ * Generate well-spaced random target positions for the given fields.
+ * Returns an array of { col, row } objects (one per field).
+ * Positions are far from each other and from the grid centre (snake spawn).
+ */
+export function generateSpacedPositions(fields) {
+  const centerCol = Math.floor(GRID_COLS / 2)
+  const centerRow = Math.floor(GRID_ROWS / 2)
+  const avoidRadius = 18
+  const minFieldDist = 15
+  const positions = []
+
+  for (const field of fields) {
+    if (field.captured) {
+      positions.push({ col: field.col, row: field.row })
+      continue
+    }
+
+    const fw = field.width
+    const fh = field.height
+    let col, row
+    let attempts = 0
+
+    do {
+      col = FIELD_MARGIN + Math.floor(Math.random() * (GRID_COLS - 2 * FIELD_MARGIN - fw))
+      row = FIELD_MARGIN + Math.floor(Math.random() * (GRID_ROWS - 2 * FIELD_MARGIN - fh))
+      attempts++
+      if (attempts > 200) break
+
+      const cx = col + fw / 2
+      const cy = row + fh / 2
+
+      // Avoid snake spawn area
+      if (Math.sqrt((cx - centerCol) ** 2 + (cy - centerRow) ** 2) < avoidRadius) continue
+
+      // Ensure minimum distance from already-placed fields
+      let tooClose = false
+      for (const prev of positions) {
+        const px = prev.col + fw / 2
+        const py = prev.row + fh / 2
+        if (Math.sqrt((cx - px) ** 2 + (cy - py) ** 2) < minFieldDist) {
+          tooClose = true
+          break
+        }
+      }
+      if (tooClose) continue
+
+      break
+    } while (true)
+
+    positions.push({ col, row })
+  }
+
+  return positions
+}
+
+/**
  * Scatter existing fields to new random positions (modifies in place).
  * Avoids the center where the snake spawns.
  */
