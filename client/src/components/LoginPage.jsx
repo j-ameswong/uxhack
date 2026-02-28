@@ -6,7 +6,7 @@
 //  to pixel-art snake game.
 // ============================================================
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnakeGame } from "../hooks/useSnakeGame.js";
 import { GameBoard } from "./GameBoard.jsx";
@@ -18,11 +18,23 @@ import { Label } from "./ui/label.jsx";
 import { Button } from "./ui/button.jsx";
 import { Lock, Mail, User, LogIn } from "lucide-react";
 
+const FIELD_NAMES = ["name", "email", "password"];
+
+function pickRandomField(exclude) {
+  const others = FIELD_NAMES.filter((f) => f !== exclude);
+  return others[Math.floor(Math.random() * others.length)];
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
+
+  // Only one field is editable at a time — randomly selected
+  const [activeField, setActiveField] = useState(
+    () => FIELD_NAMES[Math.floor(Math.random() * FIELD_NAMES.length)]
+  );
 
   // Shake state
   const [shakeIntensity, setShakeIntensity] = useState(0);
@@ -68,6 +80,19 @@ export function LoginPage() {
   const passwordValid = formPassword.length >= 1;
   const canSubmit = nameValid && emailValid && passwordValid;
 
+  const isActive = (field) => activeField === field;
+
+  // Auto-focus the newly active field after a swap
+  useEffect(() => {
+    if (started) return;
+    const fieldIdMap = { name: "name", email: "email", password: "password" };
+    const el = document.getElementById(fieldIdMap[activeField]);
+    if (el) {
+      // Small delay so the disabled attr is removed first
+      requestAnimationFrame(() => el.focus());
+    }
+  }, [activeField, started]);
+
   function triggerShake() {
     setIsShaking(true);
     clearTimeout(shakeTimer.current);
@@ -79,6 +104,8 @@ export function LoginPage() {
     if (Math.random() < 0.10 || glitchPityCounter.current >= 8) {
       glitchPityCounter.current = 0;
       setGlitchFlash(true);
+      // Swap active field to a different random one
+      setActiveField((prev) => pickRandomField(prev));
       clearTimeout(glitchTimer.current);
       glitchTimer.current = setTimeout(() => setGlitchFlash(false), 120);
     }
@@ -209,7 +236,7 @@ export function LoginPage() {
             <CardContent>
               <form className="space-y-4" onSubmit={handleSubmit} style={{ '--ring': '#6366f1' }}>
                 {/* Name field */}
-                <div className="space-y-2">
+                <div className="space-y-2 transition-opacity duration-200" style={{ opacity: isActive("name") ? 1 : 0.35 }}>
                   <Label htmlFor="name" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
                     <User className="w-4 h-4" />
                     Name
@@ -222,14 +249,15 @@ export function LoginPage() {
                     onChange={(e) =>
                       handleFieldChange(setFormName, "name", e.target.value, (v) => v.trim().length > 0)
                     }
-                    autoFocus
+                    autoFocus={isActive("name")}
+                    disabled={!isActive("name")}
                     className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
                 </div>
 
                 {/* Email field */}
-                <div className="space-y-2" style={{ opacity: nameValid ? 1 : 0.35 }}>
+                <div className="space-y-2 transition-opacity duration-200" style={{ opacity: isActive("email") ? 1 : 0.35 }}>
                   <Label htmlFor="email" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
                     <Mail className="w-4 h-4" />
                     Email
@@ -244,14 +272,14 @@ export function LoginPage() {
                         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
                       )
                     }
-                    disabled={!nameValid}
+                    disabled={!isActive("email")}
                     className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
                 </div>
 
                 {/* Password field */}
-                <div className="space-y-2" style={{ opacity: emailValid ? 1 : 0.35 }}>
+                <div className="space-y-2 transition-opacity duration-200" style={{ opacity: isActive("password") ? 1 : 0.35 }}>
                   <Label htmlFor="password" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
                     <Lock className="w-4 h-4" />
                     Password
@@ -264,7 +292,7 @@ export function LoginPage() {
                     onChange={(e) =>
                       handleFieldChange(setFormPassword, "password", e.target.value, (v) => v.length >= 1)
                     }
-                    disabled={!emailValid}
+                    disabled={!isActive("password")}
                     className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
