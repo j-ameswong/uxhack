@@ -118,16 +118,16 @@ export class GameEngine {
       // Stage 4: capture field, grow snake, trigger callback, pause
       capturedField.captured = true;
       this.capturedCount += 1;
-      this.tickRateMs = Math.max(50, TICK_RATE_MS - this.capturedCount * TICK_RATE_INCREASE_MS);
+      this.tickRateMs = Math.max(20, TICK_RATE_MS - this.capturedCount * TICK_RATE_INCREASE_MS);
       this.onFieldCaptured(capturedField);
       this.stop(); // Pause game loop — resume when user confirms input
     } else {
       this.snake.shift();
     }
 
-    // Flee AI: uncaptured fields move away from snake head
+    // DVD bounce: fields drift diagonally and bounce off walls
     for (const field of this.fields) {
-      field.fleeStep(head);
+      field.bounceStep();
     }
 
     // Separation pass: nudge any two overlapping fields apart

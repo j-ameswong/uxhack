@@ -4,14 +4,14 @@
 //  Pure JS — no React. Used by GameEngine.
 // ============================================================
 
-import { GRID_COLS, GRID_ROWS, FLEE_RADIUS } from './constants.js'
+import { GRID_COLS, GRID_ROWS } from './constants.js'
 
 /** Margin from grid edges — fields stay within this to remain catchable */
 const FIELD_MARGIN = 2
 
 /** Default field size in grid cells (cols × rows) */
-const FIELD_WIDTH = 4
-const FIELD_HEIGHT = 1.5
+const FIELD_WIDTH = 16
+const FIELD_HEIGHT = 8
 
 /**
  * Field — a form field entity on the grid that flees from the snake.
@@ -29,6 +29,9 @@ export class Field {
     this.width = FIELD_WIDTH
     this.height = FIELD_HEIGHT
     this.captured = false  // Stage 4: set true when snake eats this field
+    // DVD screensaver bounce: random diagonal velocity
+    this.dCol = Math.random() < 0.5 ? -1 : 1
+    this.dRow = Math.random() < 0.5 ? -1 : 1
   }
 
   /**
@@ -42,47 +45,30 @@ export class Field {
   }
 
   /**
-   * Chebyshev distance (max of col/row diff) — appropriate for grid movement.
+   * DVD screensaver bounce: move diagonally each tick, bounce off walls.
    */
-  _distanceTo(headPos) {
-    const center = this.getCenter()
-    return Math.max(
-      Math.abs(headPos.col - center.col),
-      Math.abs(headPos.row - center.row)
-    )
-  }
+  bounceStep() {
+    if (this.captured) return
 
-  /**
-   * Move one cell away from snake head if within FLEE_RADIUS.
-   * Uses dominant axis: move along the axis where the snake is furthest.
-   * Clamps to grid bounds with FIELD_MARGIN.
-   * @param {{ col: number, row: number }} snakeHeadPos - Snake head grid position
-   */
-  fleeStep(snakeHeadPos) {
-    if (this.captured) return  // Don't flee when already captured
-    const dist = this._distanceTo(snakeHeadPos)
-    if (dist > FLEE_RADIUS) return
+    const minCol = FIELD_MARGIN
+    const maxCol = GRID_COLS - this.width - FIELD_MARGIN
+    const minRow = FIELD_MARGIN
+    const maxRow = GRID_ROWS - this.height - FIELD_MARGIN
 
-    const center = this.getCenter()
-    const dCol = snakeHeadPos.col - center.col
-    const dRow = snakeHeadPos.row - center.row
+    let newCol = this.col + this.dCol
+    let newRow = this.row + this.dRow
 
-    // Dominant axis: move along the axis with larger absolute difference
-    const moveCol = Math.abs(dCol) >= Math.abs(dRow)
-    let newCol = this.col
-    let newRow = this.row
-
-    if (moveCol) {
-      // Move horizontally away from snake
-      newCol = dCol > 0 ? this.col - 1 : this.col + 1
-    } else {
-      // Move vertically away from snake
-      newRow = dRow > 0 ? this.row - 1 : this.row + 1
+    if (newCol <= minCol || newCol >= maxCol) {
+      this.dCol *= -1
+      newCol = Math.max(minCol, Math.min(maxCol, newCol))
+    }
+    if (newRow <= minRow || newRow >= maxRow) {
+      this.dRow *= -1
+      newRow = Math.max(minRow, Math.min(maxRow, newRow))
     }
 
-    // Clamp to grid bounds with margin (keep fields catchable)
-    this.col = Math.max(FIELD_MARGIN, Math.min(GRID_COLS - this.width - FIELD_MARGIN, newCol))
-    this.row = Math.max(FIELD_MARGIN, Math.min(GRID_ROWS - this.height - FIELD_MARGIN, newRow))
+    this.col = newCol
+    this.row = newRow
   }
 
   /**

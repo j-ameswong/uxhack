@@ -46,7 +46,7 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
           <div
             key={field.label}
             className={cn(
-              "absolute flex items-center justify-center rounded-md border border-primary/40 bg-card/80 backdrop-blur-sm select-none pointer-events-none",
+              "absolute flex items-center justify-center rounded-lg border-2 border-primary bg-card/80 backdrop-blur-sm select-none pointer-events-none",
               animateFields && "transition-[left,top] duration-200 ease-out"
             )}
             style={{
@@ -54,9 +54,10 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
               top: rect.row * cellSize.h,
               width: (rect.width ?? 2) * cellSize.w,
               height: (rect.height ?? 1) * cellSize.h,
+              fontSize: Math.max(10, Math.min((rect.height ?? 1) * cellSize.h * 0.35, (rect.width ?? 2) * cellSize.w * 0.12)),
             }}
           >
-            <span className="text-xs font-medium text-primary truncate px-1">
+            <span className="font-bold text-primary truncate px-2">
               {field.label}
             </span>
           </div>
