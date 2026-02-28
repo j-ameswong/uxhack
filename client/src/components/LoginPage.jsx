@@ -39,6 +39,7 @@ export function LoginPage() {
     gameState,
     deaths,
     started,
+    scattering,
     capturedField,
     showTooltip,
     showFailed,
@@ -72,9 +73,22 @@ export function LoginPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
         </div>
 
+        {/* ── Scatter phase: GameBoard with fields animating from form → random ── */}
+        {scattering && (
+          <GameBoard
+            gameState={gameState}
+            showSnake={false}
+            animateFields={true}
+            className="absolute inset-0 z-[5] bg-transparent"
+          />
+        )}
+
         {/* ── Pre-game: Figma login form ── */}
         {!started && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 p-4">
+          <div className={cn(
+            "absolute inset-0 flex items-center justify-center z-10 p-4 transition-opacity duration-500",
+            scattering ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}>
             <Card className="w-full max-w-md relative backdrop-blur-sm bg-white/80 shadow-2xl border-0">
               <CardHeader className="space-y-1 text-center pb-4">
                 <div className="flex justify-center mb-4">

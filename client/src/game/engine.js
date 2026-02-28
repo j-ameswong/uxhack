@@ -1,5 +1,5 @@
 import { GRID_COLS, GRID_ROWS, TICK_RATE_MS, TICK_RATE_INCREASE_MS } from './constants.js';
-import { createInitialFields, createVerifyField } from './fields.js';
+import { createInitialFields, createFormPositionFields, scatterFieldsToRandom, createVerifyField } from './fields.js';
 
 const DIRECTIONS = {
   up: { col: 0, row: -1 },
@@ -27,7 +27,7 @@ export class GameEngine {
     this.tickCount = 0;
     this.capturedCount = 0;
     this.tickRateMs = TICK_RATE_MS;
-    this.fields = createInitialFields();
+    this.fields = createFormPositionFields();
     this._resetSnake();
   }
 
@@ -141,6 +141,12 @@ export class GameEngine {
     const state = { snake: [...this.snake], fields: this.fields, gameOver: false };
     this.onTick(state);
     return state;
+  }
+
+  /** Scatter fields to random positions (for scatter animation). */
+  scatterFields() {
+    scatterFieldsToRandom(this.fields)
+    this.onTick({ snake: [...this.snake], fields: this.fields, gameOver: false })
   }
 
   /** Spawn the verify-password field after all 3 main fields are confirmed. */

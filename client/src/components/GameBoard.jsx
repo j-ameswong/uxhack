@@ -9,9 +9,9 @@ import { GRID_COLS, GRID_ROWS } from '../game/constants.js'
 import { cn } from './ui/utils.js'
 
 /**
- * @param {{ gameState: { snake: Array, fields: Array }, className?: string }} props
+ * @param {{ gameState: { snake: Array, fields: Array }, className?: string, showSnake?: boolean, animateFields?: boolean }} props
  */
-export function GameBoard({ gameState, className }) {
+export function GameBoard({ gameState, className, showSnake = true, animateFields = false }) {
   const boardRef = useRef(null)
   const [cellSize, setCellSize] = useState({ w: 0, h: 0 })
 
@@ -45,7 +45,10 @@ export function GameBoard({ gameState, className }) {
         return (
           <div
             key={field.label}
-            className="absolute flex items-center justify-center rounded-md border border-primary/40 bg-card/80 backdrop-blur-sm select-none pointer-events-none"
+            className={cn(
+              "absolute flex items-center justify-center rounded-md border border-primary/40 bg-card/80 backdrop-blur-sm select-none pointer-events-none",
+              animateFields && "transition-[left,top] duration-200 ease-out"
+            )}
             style={{
               left: rect.col * cellSize.w,
               top: rect.row * cellSize.h,
@@ -61,7 +64,7 @@ export function GameBoard({ gameState, className }) {
       })}
 
       {/* Snake */}
-      {snake.map((seg, i) => {
+      {showSnake && snake.map((seg, i) => {
         const isHead = i === snake.length - 1
         return (
           <div

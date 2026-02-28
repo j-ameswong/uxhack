@@ -179,3 +179,46 @@ export function createInitialFields() {
 
   return fields
 }
+
+/**
+ * Create three fields at form-like positions — centered and stacked vertically,
+ * mimicking the login form layout. Used as starting positions for the scatter animation.
+ */
+export function createFormPositionFields() {
+  const centerCol = Math.floor(GRID_COLS / 2) - Math.floor(FIELD_WIDTH / 2)
+  const centerRow = Math.floor(GRID_ROWS / 2)
+  const spacing = 3 // vertical spacing between fields in grid cells
+
+  const labels = ['Name', 'Email', 'Password']
+  return labels.map((label, i) => {
+    const row = centerRow - spacing + (i * spacing)
+    return new Field({ col: centerCol, row, label })
+  })
+}
+
+/**
+ * Scatter existing fields to new random positions (modifies in place).
+ * Avoids the center where the snake spawns.
+ */
+export function scatterFieldsToRandom(fields) {
+  const centerCol = Math.floor(GRID_COLS / 2)
+  const centerRow = Math.floor(GRID_ROWS / 2)
+  const avoidRadius = 6
+
+  for (const field of fields) {
+    if (field.captured) continue
+    let col, row
+    let attempts = 0
+    do {
+      col = FIELD_MARGIN + Math.floor(Math.random() * (GRID_COLS - 2 * FIELD_MARGIN - FIELD_WIDTH))
+      row = FIELD_MARGIN + Math.floor(Math.random() * (GRID_ROWS - 2 * FIELD_MARGIN - FIELD_HEIGHT))
+      attempts++
+      if (attempts > 50) break
+    } while (
+      Math.abs(col + FIELD_WIDTH / 2 - centerCol) < avoidRadius &&
+      Math.abs(row + FIELD_HEIGHT / 2 - centerRow) < avoidRadius
+    )
+    field.col = col
+    field.row = row
+  }
+}

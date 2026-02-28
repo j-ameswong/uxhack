@@ -9,7 +9,7 @@ import { useGameLoop } from './useGameLoop.js'
 import { useKeyboard } from './useKeyboard.js'
 import { useTimer } from './useTimer.js'
 import { useGameContext } from '../context/GameContext.jsx'
-import { VERIFY_TICK_RATE_MS } from '../game/constants.js'
+import { VERIFY_TICK_RATE_MS, SCATTER_DELAY_MS } from '../game/constants.js'
 
 /**
  * @param {{ onComplete?: (result: { rank, deaths, timeMs }) => void }} options
@@ -22,6 +22,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const [showFailed, setShowFailed] = useState(false)
   const [timerResetKey, setTimerResetKey] = useState(0)
   const [isFlashing, setIsFlashing] = useState(false)
+  const [scattering, setScattering] = useState(false)
   const { setFieldValue, getFieldValue } = useGameContext()
 
   const confirmedCountRef = useRef(0)
@@ -129,15 +130,32 @@ export function useSnakeGame({ onComplete } = {}) {
   }, [showTooltip])
 
   const beginGame = useCallback(() => {
-    setStarted(true)
-    startGame()
-  }, [startGame])
+    // Phase 1: show GameBoard with fields at form positions, then rapid shuffle
+    setScattering(true)
+    // Start rapid scatter interval after first frame (so form positions render)
+    const SHUFFLE_INTERVAL = 250 // ms between each shuffle
+    let intervalId
+    requestAnimationFrame(() => {
+      engineRef.current?.scatterFields()
+      intervalId = setInterval(() => {
+        engineRef.current?.scatterFields()
+      }, SHUFFLE_INTERVAL)
+    })
+    // Phase 2: stop shuffling, settle on final positions, start game
+    setTimeout(() => {
+      clearInterval(intervalId)
+      setScattering(false)
+      setStarted(true)
+      startGame()
+    }, SCATTER_DELAY_MS)
+  }, [startGame, engineRef])
 
   return {
     engineRef,
     gameState,
     deaths,
     started,
+    scattering,
     capturedField,
     showTooltip,
     showFailed,

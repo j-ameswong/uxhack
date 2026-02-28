@@ -225,6 +225,30 @@ Table: `submissions`
 
 ---
 
+### Architectural Refactor ✅ (between Stage 6 & 7)
+**Goal:** Replace canvas rendering with DOM-based rendering and AllocateMe/Figma design system.
+
+- [x] Replaced HTML5 Canvas game rendering with DOM-based `GameBoard.jsx` (snake/fields as positioned divs)
+- [x] Removed `game/draw.js` canvas renderer (replaced by `GameBoard.jsx`); `draw.js` re-added later for field styling
+- [x] Modified `engine.js`: added `onTick` callback, removed canvas params from `tick()` and `start()`
+- [x] Rewrote `useGameLoop.js`: removed canvasRef, exposes `gameState` via React state, passes onTick to engine
+- [x] Created `client/src/hooks/useSnakeGame.js` — consolidates all game state & handlers from LoginPage + App:
+  - deaths, started, capturedField, showTooltip, showFailed, timerResetKey
+  - handleDeath, handleFieldCaptured, handleInputConfirm, handleTimeUp + full submit flow
+- [x] Added shadcn/ui design system components: `badge`, `button`, `card`, `input`, `label`, `avatar`, `progress`, `tabs`
+- [x] Added `client/src/styles/theme.css` — AllocateMe colour scheme
+- [x] LoginPage: gradient background with animated blobs, glassmorphic Card, lucide-react icons
+- [x] App.jsx: Card-based start screen, Badge HUD, SuccessPage with gradient + badge stats
+- [x] InputOverlay: restyled with Card, Input, Label, Button; validation logic unchanged
+- [x] Fixed server startup issues (`server/index.js`)
+- [x] Added `client/src/assets/happy.gif`
+- [x] Screen flashes red on death (implemented in `LoginPage.jsx` + `useSnakeGame.js`)
+- [x] Background blobs maintained in-game (not just on login screen)
+
+> **NOTE — Hooks previously in `client/src/game/` moved to `client/src/hooks/` during this refactor (`useGameLoop.js`, `useKeyboard.js`, `useTimer.js`, `useSnakeGame.js`). App entry is now `client/src/App.jsx` (not `src/game/App.jsx`).**
+
+---
+
 ### Stage 7 — HUD & Completion Screen
 **Goal:** Persistent on-screen HUD; polished completion screen.
 
@@ -310,11 +334,11 @@ Table: `submissions`
 
 - Giving the wrong validation should reduce the time as well.
 
-- There should be a visual indicator on death
+- ✅ There should be a visual indicator on death → screen flashes red on death (done)
 
 - Nice to have: An animation before the game starts, where the fields start in the position of the initial login form, then get shuffled to their randomised positions
 
-- Redesign the color scheme to be use the color scheme of AllocateMe
+- ✅ Redesign the color scheme to use the AllocateMe color scheme → done via theme.css + shadcn/ui refactor
 
 - Add sound
 
