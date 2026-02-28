@@ -71,13 +71,22 @@ export function useSnakeGame({ onComplete } = {}) {
   penalizeRef.current = penalize
 
   const [penaltyFlash, setPenaltyFlash] = useState(false)
+  const [penaltyAmount, setPenaltyAmount] = useState(0)
 
   const handleCharTyped = useCallback((char) => {
     engineRef.current?.growTail(char)
-    penalizeRef.current?.(1000) // deduct 1 second per character
+    penalizeRef.current?.(1000)
+    setPenaltyAmount(1)
     setPenaltyFlash(true)
     setTimeout(() => setPenaltyFlash(false), 200)
   }, [engineRef])
+
+  const handleFailedValidation = useCallback(() => {
+    penalizeRef.current?.(5000)
+    setPenaltyAmount(5)
+    setPenaltyFlash(true)
+    setTimeout(() => setPenaltyFlash(false), 400)
+  }, [])
 
   const handleInputConfirm = useCallback(async (field, value) => {
     setFieldValue(field.label, value)
@@ -173,10 +182,12 @@ export function useSnakeGame({ onComplete } = {}) {
     timerDisplay,
     isFlashing,
     penaltyFlash,
+    penaltyAmount,
     beginGame,
     stopGame,
     handleInputConfirm,
     handleCharTyped,
+    handleFailedValidation,
     getFieldValue,
   }
 }

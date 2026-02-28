@@ -89,6 +89,12 @@ export function useTimer(isRunning, isPaused, onTimeUp, resetTrigger = 0) {
       const now = pausedAtRef.current ?? Date.now()
       const remaining = endAtRef.current - now + totalPausedRef.current
       setRemainingMs(remaining)
+
+      // Fire onTimeUp if penalty pushed time to zero
+      if (remaining <= 0 && !firedRef.current) {
+        firedRef.current = true
+        onTimeUpRef.current?.()
+      }
     }
   }
 

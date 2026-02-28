@@ -34,9 +34,11 @@ function GamePage() {
     showFailed,
     timerDisplay,
     penaltyFlash,
+    penaltyAmount,
     beginGame,
     handleInputConfirm,
     handleCharTyped,
+    handleFailedValidation,
     getFieldValue,
   } = useSnakeGame({ onComplete });
 
@@ -102,7 +104,7 @@ function GamePage() {
                 color: '#ef4444',
                 whiteSpace: 'nowrap',
               }}>
-                -1s
+                -{penaltyAmount}s
               </div>
             )}
           </div>
@@ -131,6 +133,7 @@ function GamePage() {
         field={capturedField}
         onConfirm={handleInputConfirm}
         onCharTyped={handleCharTyped}
+        onFailedValidation={handleFailedValidation}
         storedPassword={getFieldValue("Password")}
       />
 

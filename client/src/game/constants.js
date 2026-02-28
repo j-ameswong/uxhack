@@ -7,7 +7,7 @@ export const GRID_COLS       = 100      // logical grid width
 export const GRID_ROWS       = 75      // logical grid height
 
 export const TICK_RATE_MS    = 40     // ms per snake tick (initial)
-export const TICK_RATE_INCREASE_MS = 15 // ms faster per captured field
+export const TICK_RATE_INCREASE_MS = 20 // ms faster per captured field
 
 // Verify-password phase — fixed speed, faster than normal
 export const VERIFY_TICK_RATE_MS = 20

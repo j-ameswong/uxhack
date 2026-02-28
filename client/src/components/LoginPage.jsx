@@ -33,9 +33,11 @@ export function LoginPage() {
     timerDisplay,
     isFlashing,
     penaltyFlash,
+    penaltyAmount,
     beginGame,
     handleInputConfirm,
     handleCharTyped,
+    handleFailedValidation,
     getFieldValue,
   } = useSnakeGame({ onComplete });
 
@@ -192,7 +194,7 @@ export function LoginPage() {
                   color: '#ef4444',
                   whiteSpace: 'nowrap',
                 }}>
-                  -1s
+                  -{penaltyAmount}s
                 </div>
               )}
             </div>
@@ -206,6 +208,7 @@ export function LoginPage() {
           field={capturedField}
           onConfirm={handleInputConfirm}
           onCharTyped={handleCharTyped}
+          onFailedValidation={handleFailedValidation}
           storedPassword={getFieldValue("Password")}
         />
 
