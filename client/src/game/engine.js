@@ -103,6 +103,7 @@ export class GameEngine {
     const newHead = this._advanceHead();
 
     if (this._isWallCollision(newHead) || this._isSelfCollision(newHead)) {
+      this.stop(); // Stop engine immediately — countdown will restart it
       this.onDeath();
       this._resetSnake();
       const state = { snake: [...this.snake], fields: this.fields, gameOver: true };

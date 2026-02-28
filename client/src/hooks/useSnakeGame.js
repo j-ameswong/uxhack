@@ -23,6 +23,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const [timerResetKey, setTimerResetKey] = useState(0)
   const [isFlashing, setIsFlashing] = useState(false)
   const [scattering, setScattering] = useState(false)
+  const [deathCountdown, setDeathCountdown] = useState(null)
   const { setFieldValue, getFieldValue } = useGameContext()
 
   const confirmedCountRef = useRef(0)
@@ -34,20 +35,28 @@ export function useSnakeGame({ onComplete } = {}) {
     setDeaths(d => d + 1)
     setCapturedField(null)
     confirmedCountRef.current = 0
-    console.log("Death triggered!")
 
     // Trigger the flash effect
     setIsFlashing(true)
     setTimeout(() => setIsFlashing(false), 100)
 
-    setTimeout(() => resetGame(), 800)
+    // After flash, start countdown (engine already stopped + reset by tick())
+    setTimeout(() => {
+      setDeathCountdown(3)
+      setTimeout(() => setDeathCountdown(2), 1000)
+      setTimeout(() => setDeathCountdown(1), 2000)
+      setTimeout(() => {
+        setDeathCountdown(null)
+        startGame()
+      }, 3000)
+    }, 800)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFieldCaptured = useCallback((field) => {
     setCapturedField(field)
   }, [])
 
-  const { engineRef, gameState, startGame, stopGame, resetGame, resumeGame } = useGameLoop({
+  const { engineRef, gameState, startGame, stopGame, resetGame, resetSnake, resumeGame } = useGameLoop({
     onDeath: handleDeath,
     onFieldCaptured: handleFieldCaptured,
   })
@@ -176,6 +185,7 @@ export function useSnakeGame({ onComplete } = {}) {
     deaths,
     started,
     scattering,
+    deathCountdown,
     capturedField,
     showTooltip,
     showFailed,

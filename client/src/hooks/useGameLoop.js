@@ -56,6 +56,7 @@ export function useGameLoop(callbacks = {}) {
     engineRef.current?.stop()
   }, [])
 
+  /** Reset snake position and start engine immediately. */
   const resetGame = useCallback(() => {
     if (!engineRef.current) return
     engineRef.current.stop()
@@ -64,11 +65,19 @@ export function useGameLoop(callbacks = {}) {
     engineRef.current.start(TICK_RATE_MS)
   }, [])
 
+  /** Reset snake position only — does NOT start the engine. */
+  const resetSnake = useCallback(() => {
+    if (!engineRef.current) return
+    engineRef.current.stop()
+    engineRef.current._resetSnake()
+    setGameState(engineRef.current.getState())
+  }, [])
+
   // Resume after field capture — use engine's current (possibly faster) tick rate
   const resumeGame = useCallback(() => {
     if (!engineRef.current) return
     engineRef.current.start(engineRef.current.tickRateMs)
   }, [])
 
-  return { engineRef, gameState, startGame, stopGame, resetGame, resumeGame }
+  return { engineRef, gameState, startGame, stopGame, resetGame, resetSnake, resumeGame }
 }

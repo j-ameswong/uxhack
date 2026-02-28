@@ -31,6 +31,7 @@ function GamePage() {
     started,
     capturedField,
     showTooltip,
+    deathCountdown,
     showFailed,
     timerDisplay,
     penaltyFlash,
@@ -136,6 +137,20 @@ function GamePage() {
         onFailedValidation={handleFailedValidation}
         storedPassword={getFieldValue("Password")}
       />
+
+      {/* Death countdown */}
+      {deathCountdown != null && (
+        <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
+          <div style={{
+            fontFamily: 'var(--font-pixel)',
+            fontSize: '4rem',
+            color: '#4ade80',
+            textShadow: '4px 4px 0 #166534, 0 0 20px rgba(74,222,128,0.5)',
+          }}>
+            {deathCountdown}
+          </div>
+        </div>
+      )}
 
       {/* Tooltip */}
       {showTooltip && started && !capturedField && (
