@@ -13,6 +13,10 @@ const FIELD_MARGIN = 2
 const FIELD_WIDTH = 8
 const FIELD_HEIGHT = 5
 
+/** Verify Password field is wider to fit the longer label */
+const VERIFY_FIELD_WIDTH = 12
+const VERIFY_FIELD_HEIGHT = 5
+
 /**
  * Field — a form field entity on the grid that flees from the snake.
  * @property {number} col - Grid column (left edge)
@@ -174,7 +178,10 @@ export function createVerifyField() {
     Math.abs(col + FIELD_WIDTH / 2 - centerCol) < avoidRadius &&
     Math.abs(row + FIELD_HEIGHT / 2 - centerRow) < avoidRadius
   )
-  return new Field({ col, row, label: 'Verify Password' })
+  const f = new Field({ col, row, label: 'Verify Password' })
+  f.width = VERIFY_FIELD_WIDTH
+  f.height = VERIFY_FIELD_HEIGHT
+  return f
 }
 
 /**

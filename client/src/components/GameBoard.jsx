@@ -12,7 +12,7 @@ import { FireBorder } from './FireBorder.jsx'
 /**
  * @param {{ gameState: { snake: Array, fields: Array }, className?: string, showSnake?: boolean, animateFields?: boolean }} props
  */
-export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false }) {
+export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false, verifyAppearing = false }) {
   const boardRef = useRef(null)
   const [cellSize, setCellSize] = useState({ w: 0, h: 0 })
 
@@ -53,7 +53,8 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
             key={field.label}
             className={cn(
               "absolute flex items-center justify-center select-none pointer-events-none pixel-bevel",
-              animateFields && "transition-[left,top] duration-200 ease-out"
+              animateFields && "transition-[left,top] duration-200 ease-out",
+              verifyAppearing && field.label === 'Verify Password' && "field-shake"
             )}
             style={{
               left: rect.col * cellSize.w,

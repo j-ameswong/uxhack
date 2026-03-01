@@ -27,6 +27,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const [cardFading, setCardFading] = useState(false)
   const [morphing, setMorphing] = useState(false)
   const [deathCountdown, setDeathCountdown] = useState(null)
+  const [verifyAppearing, setVerifyAppearing] = useState(false)
   const { setFieldValue, getFieldValue } = useGameContext()
 
   const confirmedCountRef = useRef(0)
@@ -117,7 +118,15 @@ export function useSnakeGame({ onComplete } = {}) {
     if (confirmedCountRef.current >= 3 && field.label !== 'Verify Password') {
       engineRef.current.tickRateMs = VERIFY_TICK_RATE_MS
       engineRef.current.spawnVerifyField()
-      resumeGame()
+      // Brief pause to draw attention to the new field
+      setVerifyAppearing(true)
+      // Emit a tick so the field renders on the board while paused
+      const eng = engineRef.current
+      eng.onTick({ snake: [...eng.snake], fields: eng.fields, gameOver: false })
+      setTimeout(() => {
+        setVerifyAppearing(false)
+        resumeGame()
+      }, 2000)
       return
     }
 
@@ -275,6 +284,7 @@ export function useSnakeGame({ onComplete } = {}) {
     cardFading,
     morphing,
     deathCountdown,
+    verifyAppearing,
     capturedField,
     showTooltip,
     showFailed,

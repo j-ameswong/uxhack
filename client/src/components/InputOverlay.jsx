@@ -4,6 +4,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react'
+import { cn } from './ui/utils.js'
 
 const VALIDATORS = {
   Name: (v) => (v.trim().length > 0 ? null : 'Name is required'),
@@ -181,17 +182,18 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
   if (!field) return null
 
   const isPassword = field.label === 'Password'
+  const isVerify = field.label === 'Verify Password'
   const rulesRevealed = isPassword ? passwordLevel + 1 : 0
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30">
-      <div className="pixel-bevel min-w-[320px]" style={{ backgroundColor: '#25253e' }}>
+      <div className={cn("pixel-bevel", isVerify ? "min-w-[420px]" : "min-w-[320px]")} style={{ backgroundColor: '#25253e' }}>
         {/* Title bar */}
         <div className="flex items-center px-3 py-1.5" style={{
           backgroundColor: '#6366f1',
           borderBottom: '3px solid #3730a3',
         }}>
-          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#e0e0e0' }}>
+          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: isVerify ? '0.625rem' : '0.5rem', color: '#e0e0e0' }}>
             ENTER {field.label.toUpperCase()}
           </span>
           {isPassword && (
@@ -245,7 +247,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
           )}
 
           {error && (
-            <p className="text-destructive" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem' }}>
+            <p className="text-destructive" style={{ fontFamily: 'var(--font-pixel)', fontSize: isVerify ? '0.625rem' : '0.5rem' }}>
               {error}
             </p>
           )}
