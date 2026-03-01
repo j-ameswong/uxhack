@@ -38,7 +38,7 @@ router.post('/', (req, res) => {
   return res.status(201).json({ rank: count + 1, id });
 });
 
-// PATCH /api/submit/:id/name — update display name
+// PATCH /api/submit/:id/name — update display name (one-time only)
 router.patch('/:id/name', (req, res) => {
   const { name } = req.body;
   const { id } = req.params;
@@ -47,10 +47,15 @@ router.patch('/:id/name', (req, res) => {
     return res.status(400).json({ error: 'name is required' });
   }
 
-  const result = db.prepare('UPDATE submissions SET name = ? WHERE id = ?').run(name.trim(), id);
-  if (result.changes === 0) {
+  const row = db.prepare('SELECT name_changed FROM submissions WHERE id = ?').get(id);
+  if (!row) {
     return res.status(404).json({ error: 'submission not found' });
   }
+  if (row.name_changed) {
+    return res.status(403).json({ error: 'name can only be changed once' });
+  }
+
+  db.prepare('UPDATE submissions SET name = ?, name_changed = 1 WHERE id = ?').run(name.trim(), id);
   return res.json({ ok: true });
 });
 

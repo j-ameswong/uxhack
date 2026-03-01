@@ -22,7 +22,7 @@ function GamePage() {
 
   const onComplete = useCallback(
     (result) => {
-      navigate("/success", { state: result });
+      navigate("/leaderboard", { state: result });
     },
     [navigate],
   );
@@ -166,7 +166,10 @@ function GamePage() {
   );
 }
 
-// ── Success Page ─────────────────────────────────────────────
+// ── Unified Leaderboard Page ─────────────────────────────────
+// When navigated to with location.state (containing id, rank, etc.),
+// shows post-game success screen with stats + edit controls.
+// When navigated to directly (no state), shows standalone leaderboard.
 
 const FRAME_COLORS = [
   { label: 'Gold',    value: '#ffd700' },
@@ -178,15 +181,19 @@ const FRAME_COLORS = [
   { label: 'Silver',  value: '#c0c0c0' },
 ];
 
-function SuccessPage() {
+function LeaderboardPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { rank, id, deaths, timeMs, submitError } = location.state ?? {};
   const { getFieldValue } = useGameContext();
 
+  // id present = user just completed the game
+  const hasGameResult = id != null;
+
   const [displayName, setDisplayName] = useState(getFieldValue('Name') || '');
   const [editingName, setEditingName] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
+  const [nameChangeUsed, setNameChangeUsed] = useState(false);
 
   const [frameColor, setFrameColor] = useState('#ffd700');
   const [frameColorSaved, setFrameColorSaved] = useState(false);
@@ -212,6 +219,7 @@ function SuccessPage() {
       if (res.ok) {
         setNameSaved(true);
         setEditingName(false);
+        setNameChangeUsed(true);
         setLeaderboardKey(k => k + 1);
         setTimeout(() => setNameSaved(false), 2000);
       }
@@ -235,6 +243,47 @@ function SuccessPage() {
     } catch { /* silently fail */ }
   }
 
+  // ── Standalone leaderboard (no game result) ──
+  if (!hasGameResult) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4" style={{ backgroundColor: '#1a1a2e' }}>
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }}
+        />
+        <div className="relative pixel-bevel max-w-lg w-full text-center" style={{ backgroundColor: '#25253e' }}>
+          <div className="flex items-center px-3 py-2" style={{
+            backgroundColor: '#4ade80',
+            borderBottom: '3px solid #166534',
+          }}>
+            <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#1a1a2e', fontWeight: 'bold' }}>
+              LEADERBOARD
+            </span>
+          </div>
+          <div className="p-8 space-y-6">
+            <LeaderboardModal />
+            <button
+              onClick={() => navigate("/")}
+              className="px-6 py-2 pixel-bevel cursor-pointer font-bold"
+              style={{
+                fontFamily: 'var(--font-pixel)',
+                fontSize: '0.625rem',
+                backgroundColor: '#3b3b5c',
+                color: '#4ade80',
+              }}
+            >
+              BACK
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Post-game success + leaderboard ──
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4" style={{ backgroundColor: '#1a1a2e' }}>
       {/* Grid background */}
@@ -274,7 +323,7 @@ function SuccessPage() {
           {/* Editable display name */}
           {!submitError && id && (
             <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
-              <label style={{ ...{ fontFamily: 'var(--font-pixel)' }, fontSize: '0.4rem', color: '#6a6a8a' }}>
+              <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>
                 DISPLAY NAME
               </label>
               <div className="flex items-center justify-center gap-2 mt-2">
@@ -318,19 +367,23 @@ function SuccessPage() {
                     <span className={rank != null && rank <= 3 ? 'rainbow-name' : ''} style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: rank != null && rank <= 3 ? undefined : '#e0e0e0' }}>
                       {displayName || '???'}
                     </span>
-                    <button
-                      onClick={() => setEditingName(true)}
-                      className="pixel-bevel px-2 py-1 cursor-pointer"
-                      style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}
-                    >
-                      EDIT
-                    </button>
-                    {nameSaved && (
-                      <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span>
+                    {!nameChangeUsed && (
+                      <button
+                        onClick={() => setEditingName(true)}
+                        className="pixel-bevel px-2 py-1 cursor-pointer"
+                        style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}
+                      >
+                        EDIT
+                      </button>
                     )}
                   </>
                 )}
               </div>
+              {nameSaved && (
+                <div className="mt-2 text-center">
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -421,31 +474,6 @@ function SuccessPage() {
   );
 }
 
-// ── Leaderboard placeholder ──────────────────────────────────
-
-function LeaderboardPage() {
-  const navigate = useNavigate();
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-4" style={{ backgroundColor: '#1a1a2e' }}>
-      <div className="w-full max-w-md">
-        <LeaderboardModal />
-      </div>
-      <button
-        onClick={() => navigate("/")}
-        className="px-6 py-2 pixel-bevel cursor-pointer font-bold"
-        style={{
-          fontFamily: 'var(--font-pixel)',
-          fontSize: '0.625rem',
-          backgroundColor: '#3b3b5c',
-          color: '#4ade80',
-        }}
-      >
-        BACK
-      </button>
-    </div>
-  );
-}
-
 // ── App root ─────────────────────────────────────────────────
 
 export default function App() {
@@ -456,7 +484,6 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<LoginPage />} />
           <Route path="/game" element={<GamePage />} />
-          <Route path="/success" element={<SuccessPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
         </Routes>
       </BrowserRouter>

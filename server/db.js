@@ -22,4 +22,11 @@ try {
   // Column already exists — ignore
 }
 
+// Add name_changed column if missing (existing databases)
+try {
+  db.exec(`ALTER TABLE submissions ADD COLUMN name_changed INTEGER NOT NULL DEFAULT 0`);
+} catch (_) {
+  // Column already exists — ignore
+}
+
 module.exports = db;

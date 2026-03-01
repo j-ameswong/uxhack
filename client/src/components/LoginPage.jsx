@@ -50,7 +50,7 @@ export function LoginPage() {
 
   const onComplete = useCallback(
     (result) => {
-      navigate("/success", { state: result });
+      navigate("/leaderboard", { state: result });
     },
     [navigate],
   );
