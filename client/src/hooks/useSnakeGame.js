@@ -77,7 +77,7 @@ export function useSnakeGame({ onComplete } = {}) {
     }, 1500)
   }, [engineRef, resetGame])
 
-  const { display: timerDisplay, elapsedMs, penalize } = useTimer(started, !!capturedField, handleTimeUp, timerResetKey)
+  const { display: timerDisplay, elapsedMs, penalize } = useTimer(started, false, handleTimeUp, timerResetKey)
   elapsedMsRef.current = elapsedMs
   const penalizeRef = useRef(penalize)
   penalizeRef.current = penalize

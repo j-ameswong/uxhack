@@ -31,6 +31,9 @@ function GamePage() {
     gameState,
     deaths,
     started,
+    scattering,
+    cardFading,
+    morphing,
     capturedField,
     showTooltip,
     deathCountdown,
@@ -57,10 +60,10 @@ function GamePage() {
       />
 
       {/* Game board — always mounted */}
-      <GameBoard gameState={gameState} className="absolute inset-0" />
+      <GameBoard gameState={gameState} showFireBorder={started} className="absolute inset-0" />
 
       {/* Start screen */}
-      {!started && (
+      {!started && !scattering && !morphing && !cardFading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10" style={{ backgroundColor: 'rgba(26,26,46,0.85)' }}>
           <div className="pixel-bevel text-center max-w-sm w-[90%] p-8" style={{ backgroundColor: '#25253e' }}>
             <div className="mb-4" style={{ fontFamily: 'var(--font-pixel)', fontSize: '2rem', color: '#4ade80' }}>
