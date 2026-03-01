@@ -3,7 +3,7 @@
 //  Pixel-art styled leaderboard with rainbow top 3 & #1 frame.
 // ============================================================
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 function formatTime(ms) {
   if (ms == null) return '--:--'
@@ -16,19 +16,57 @@ function formatTime(ms) {
 
 const pixelFont = { fontFamily: 'var(--font-pixel)' }
 
-const RANK_MEDALS = { 1: '👑', 2: '🥈', 3: '🥉' }
+
+
+// Lerp between two hex colors
+function lerpColor(a, b, t) {
+  const parse = (hex) => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ]
+  const [r1, g1, b1] = parse(a)
+  const [r2, g2, b2] = parse(b)
+  const r = Math.round(r1 + (r2 - r1) * t)
+  const g = Math.round(g1 + (g2 - g1) * t)
+  const bl = Math.round(b1 + (b2 - b1) * t)
+  return `rgb(${r},${g},${bl})`
+}
 
 function Row({ entry, highlight }) {
   const isTop3 = entry.rank <= 3
   const isFirst = entry.rank === 1
+  const hasDualColor = isTop3 && entry.frameColor && entry.frameColor2
+  const rowRef = useRef(null)
+
+  // JS-driven color cycling for dual-color frames
+  useEffect(() => {
+    if (!hasDualColor || !rowRef.current) return
+    let raf
+    const c1 = entry.frameColor
+    const c2 = entry.frameColor2
+    function animate() {
+      const t = (Math.sin(Date.now() / 1000 * Math.PI) + 1) / 2 // 0→1→0 over 2s
+      const current = lerpColor(c1, c2, t)
+      const el = rowRef.current
+      if (el) {
+        el.style.borderLeft = `4px solid ${current}`
+        el.style.borderRight = `4px solid ${lerpColor(c2, c1, t)}`
+        el.style.boxShadow = `inset 0 0 12px ${current}, 0 0 6px ${lerpColor(c2, c1, t)}`
+      }
+      raf = requestAnimationFrame(animate)
+    }
+    raf = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(raf)
+  }, [hasDualColor, entry.frameColor, entry.frameColor2])
 
   const rowStyle = {
     backgroundColor: highlight ? 'rgba(74,222,128,0.15)' : 'transparent',
     borderBottom: '2px solid #3b3b5c',
   }
 
-  // #1 gets a custom colored frame border
-  if (isFirst && entry.frameColor) {
+  // Single-color frame for non-top-3 (or top-3 without dual)
+  if (entry.frameColor && !hasDualColor) {
     rowStyle.borderLeft = `4px solid ${entry.frameColor}`
     rowStyle.borderRight = `4px solid ${entry.frameColor}`
     rowStyle.boxShadow = `inset 0 0 8px ${entry.frameColor}40`
@@ -39,9 +77,9 @@ function Row({ entry, highlight }) {
   const paddingY = isFirst ? 'py-3' : 'py-2'
 
   return (
-    <tr style={rowStyle}>
+    <tr ref={rowRef} style={rowStyle}>
       <td className={`px-3 ${paddingY} text-center`} style={{ ...pixelFont, fontSize, color: '#6366f1' }}>
-        {RANK_MEDALS[entry.rank] || `#${entry.rank}`}
+        #{entry.rank}
       </td>
       <td
         className={`px-3 ${paddingY} max-w-[120px] truncate ${nameCellClass}`}

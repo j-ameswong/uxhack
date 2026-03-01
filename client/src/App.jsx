@@ -196,8 +196,11 @@ function LeaderboardPage() {
   const [nameChangeUsed, setNameChangeUsed] = useState(false);
 
   const [frameColor, setFrameColor] = useState('#ffd700');
+  const [frameColor2, setFrameColor2] = useState('#dc143c');
   const [frameColorSaved, setFrameColorSaved] = useState(false);
+  const [frameColorChangeUsed, setFrameColorChangeUsed] = useState(false);
   const [leaderboardKey, setLeaderboardKey] = useState(0);
+  const isTop3 = rank != null && rank <= 3;
 
   function formatTime(ms) {
     if (ms == null) return "--:--";
@@ -226,17 +229,19 @@ function LeaderboardPage() {
     } catch { /* silently fail */ }
   }
 
-  async function saveFrameColor(color) {
-    setFrameColor(color);
+  async function saveFrameColors(color1, color2) {
     if (!id) return;
+    const body = { frameColor: color1 ?? frameColor };
+    if (isTop3) body.frameColor2 = color2 ?? frameColor2;
     try {
       const res = await fetch(`/api/submit/${id}/frame-color`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ frameColor: color }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setFrameColorSaved(true);
+        if (isTop3) setFrameColorChangeUsed(true);
         setLeaderboardKey(k => k + 1);
         setTimeout(() => setFrameColorSaved(false), 2000);
       }
@@ -405,16 +410,19 @@ function LeaderboardPage() {
             )}
           </div>
 
-          {/* Frame color selector — only for rank #1 */}
-          {rank === 1 && !submitError && id && (
+          {/* Frame color selector — available to everyone */}
+          {!submitError && id && (
             <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
               <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>
-                #1 FRAME COLOR
+                {isTop3 ? 'FRAME GRADIENT' : 'FRAME COLOR'}
               </label>
-              <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
                 <select
                   value={frameColor}
-                  onChange={e => saveFrameColor(e.target.value)}
+                  onChange={e => {
+                    setFrameColor(e.target.value);
+                    if (!isTop3) saveFrameColors(e.target.value);
+                  }}
                   className="pixel-bevel-inset px-2 py-1 cursor-pointer"
                   style={{
                     fontFamily: 'var(--font-pixel)',
@@ -431,19 +439,56 @@ function LeaderboardPage() {
                     </option>
                   ))}
                 </select>
+                {isTop3 && (
+                  <>
+                    <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>+</span>
+                    <select
+                      value={frameColor2}
+                      onChange={e => setFrameColor2(e.target.value)}
+                      className="pixel-bevel-inset px-2 py-1 cursor-pointer"
+                      style={{
+                        fontFamily: 'var(--font-pixel)',
+                        fontSize: '0.5rem',
+                        color: frameColor2,
+                        backgroundColor: '#1a1a2e',
+                        border: 'none',
+                        outline: 'none',
+                      }}
+                    >
+                      {FRAME_COLORS.map(c => (
+                        <option key={c.value} value={c.value} style={{ color: c.value }}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
                 <div
                   className="pixel-bevel"
                   style={{
                     width: 20,
                     height: 20,
-                    backgroundColor: frameColor,
+                    background: isTop3
+                      ? `linear-gradient(135deg, ${frameColor}, ${frameColor2})`
+                      : frameColor,
                     boxShadow: `0 0 8px ${frameColor}80`,
                   }}
                 />
-                {frameColorSaved && (
-                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span>
+                {isTop3 && !frameColorChangeUsed && (
+                  <button
+                    onClick={() => saveFrameColors()}
+                    className="pixel-bevel px-2 py-1 cursor-pointer"
+                    style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}
+                  >
+                    SAVE
+                  </button>
                 )}
               </div>
+              {frameColorSaved && (
+                <div className="mt-2 text-center">
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span>
+                </div>
+              )}
             </div>
           )}
 

@@ -59,16 +59,17 @@ router.patch('/:id/name', (req, res) => {
   return res.json({ ok: true });
 });
 
-// PATCH /api/submit/:id/frame-color — update frame color (rank 1 only)
+// PATCH /api/submit/:id/frame-color — update frame color(s)
 router.patch('/:id/frame-color', (req, res) => {
-  const { frameColor } = req.body;
+  const { frameColor, frameColor2 } = req.body;
   const { id } = req.params;
 
   if (!frameColor || typeof frameColor !== 'string') {
     return res.status(400).json({ error: 'frameColor is required' });
   }
 
-  const result = db.prepare('UPDATE submissions SET frame_color = ? WHERE id = ?').run(frameColor.trim(), id);
+  const color2 = (frameColor2 && typeof frameColor2 === 'string') ? frameColor2.trim() : null;
+  const result = db.prepare('UPDATE submissions SET frame_color = ?, frame_color_2 = ? WHERE id = ?').run(frameColor.trim(), color2, id);
   if (result.changes === 0) {
     return res.status(404).json({ error: 'submission not found' });
   }

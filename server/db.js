@@ -29,4 +29,11 @@ try {
   // Column already exists — ignore
 }
 
+// Add frame_color_2 column if missing (existing databases)
+try {
+  db.exec(`ALTER TABLE submissions ADD COLUMN frame_color_2 TEXT DEFAULT NULL`);
+} catch (_) {
+  // Column already exists — ignore
+}
+
 module.exports = db;
