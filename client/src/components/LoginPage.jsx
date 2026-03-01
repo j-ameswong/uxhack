@@ -236,6 +236,11 @@ export function LoginPage() {
           60% { transform: translate(var(--shake-x), calc(var(--shake-y) * 0.5)); }
           80% { transform: translate(calc(var(--shake-x) * -0.5), calc(var(--shake-y) * -1)); }
         }
+        @keyframes morph-fade {
+          0%   { opacity: 0; }
+          20%  { opacity: 0.75; }
+          100% { opacity: 0; }
+        }
       `}</style>
 
       {/* ── Glitch flash / submit pixel-art reveal ── */}
@@ -325,11 +330,13 @@ export function LoginPage() {
             backgroundColor: '#1a1a2e',
             borderRadius: '0px',
             border: 'none',
-            opacity: morphed ? 0 : 1,
             fontFamily: 'var(--font-pixel)',
             fontSize: '0.625rem',
             color: '#4ade80',
-            transition: 'all 1800ms ease-in-out',
+            // Position/size driven by transition; opacity driven by keyframe so it
+            // fades in from 0 and never pops in at full opacity.
+            transition: 'left 1800ms ease-in-out, top 1800ms ease-in-out, width 1800ms ease-in-out, height 1800ms ease-in-out',
+            animation: 'morph-fade 1800ms ease-in-out forwards',
             boxShadow: 'inset -2px -2px 0 #000, inset 2px 2px 0 #4a4a6a',
           }}
         >
