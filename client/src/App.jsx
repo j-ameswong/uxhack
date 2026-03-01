@@ -222,7 +222,7 @@ function LeaderboardPage() {
   async function saveName() {
     if (!displayName.trim() || !id) return;
     try {
-      const res = await fetch(`/api/submit/${id}/name`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/submit/${id}/name`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: displayName.trim() }),
@@ -242,7 +242,7 @@ function LeaderboardPage() {
     const body = { frameColor: color1 ?? frameColor };
     if (isTop3) body.frameColor2 = color2 ?? frameColor2;
     try {
-      const res = await fetch(`/api/submit/${id}/frame-color`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/submit/${id}/frame-color`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

@@ -103,7 +103,7 @@ export function LeaderboardModal({ currentId, currentRank }) {
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    fetch('/api/leaderboard')
+    fetch(`${import.meta.env.VITE_API_URL}/api/leaderboard`)
       .then(r => r.json())
       .then(data => { setEntries(data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
