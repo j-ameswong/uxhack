@@ -1,7 +1,11 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
-const db = new Database(path.join(__dirname, 'data', 'snakeup.db'));
+const dataDir = path.join(__dirname, 'data');
+fs.mkdirSync(dataDir, { recursive: true });
+
+const db = new Database(path.join(dataDir, 'snakeup.db'));
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS submissions (
