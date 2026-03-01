@@ -1,8 +1,8 @@
-# SnakeUp
+# SnekUp
 
 **The form that fights back.**
 
-SnakeUp is a counter-intuitive sign-up experience: a full-stack web app where form fields flee from you. Steer a snake with arrow keys to chase and capture the fields, then fill them in. Completions are timed, deaths counted, and results posted to a leaderboard.
+SnekUp is a counter-intuitive sign-up experience: a full-stack web app where form fields flee from you. Steer a snake with arrow keys to chase and capture the fields, then fill them in. Completions are timed, deaths counted, and results posted to a leaderboard.
 
 - **Theme:** Counter-Intuitive
 - **Platform:** Desktop Web Browser

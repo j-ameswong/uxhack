@@ -1,8 +1,8 @@
-# SnakeUp — Project Planning & Progress Tracker
+# SnekUp — Project Planning & Progress Tracker
 
 ## Project Summary
 
-**SnakeUp** is a counter-intuitive sign-up experience: a full-stack web app where form fields flee from the user's cursor. The user steers a snake with arrow keys to "eat" the fields and fill them in. Completions are timed, deaths counted, and results posted to a persistent leaderboard.
+**SnekUp** is a counter-intuitive sign-up experience: a full-stack web app where form fields flee from the user's cursor. The user steers a snake with arrow keys to "eat" the fields and fill them in. Completions are timed, deaths counted, and results posted to a persistent leaderboard.
 
 - **Theme:** Counter-Intuitive
 - **Platform:** Desktop Web Browser
@@ -227,7 +227,7 @@ Table: `submissions`
 - [x] After third field confirmed, auto-submit via "Verify Password" capture flow
 - [x] On submit: collect `{ name, email, timeMs, deaths }`, POST to `POST /api/submit`
 - [x] **Server — `server/db.js`:**
-  - [x] Open SQLite database (`./data/snakeup.db`)
+  - [x] Open SQLite database (`./data/snekup.db`)
   - [x] `CREATE TABLE IF NOT EXISTS submissions (...)` on startup
 - [x] **Server — `server/routes/submissions.js`:**
   - [x] Validate all fields (400 on failure)

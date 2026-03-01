@@ -86,7 +86,7 @@ function GamePage() {
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10" style={{ backgroundColor: 'rgba(26,26,46,0.85)' }}>
           <div className="pixel-bevel text-center max-w-sm w-[90%] p-8" style={{ backgroundColor: '#25253e' }}>
             <div className="mb-4" style={{ fontFamily: 'var(--font-pixel)', fontSize: '2rem', color: '#4ade80' }}>
-              SNAKEUP
+              SNEKUP
             </div>
             <p className="mb-2" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>
               The form that fights back.

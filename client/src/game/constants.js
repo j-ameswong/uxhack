@@ -1,5 +1,5 @@
 // ============================================================
-//  SnakeUp — Game Constants
+//  SnekUp — Game Constants
 //  All configurable values live here. No magic numbers elsewhere.
 // ============================================================
 

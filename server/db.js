@@ -6,7 +6,7 @@ console.log('Opening database...');
 const dataDir = path.join(__dirname, 'data');
 fs.mkdirSync(dataDir, { recursive: true });
 
-const db = new Database(path.join(dataDir, 'snakeup.db'));
+const db = new Database(path.join(dataDir, 'snekup.db'));
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS submissions (
