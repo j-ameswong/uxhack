@@ -9,12 +9,17 @@ import { GRID_COLS, GRID_ROWS } from '../game/constants.js'
 import { cn } from './ui/utils.js'
 import { FireBorder } from './FireBorder.jsx'
 
+const PARTICLE_COUNT = 10
+const PARTICLE_COLORS = ['#4ade80', '#22c55e', '#86efac', '#ffd700', '#ffffff']
+
 /**
- * @param {{ gameState: { snake: Array, fields: Array }, className?: string, showSnake?: boolean, animateFields?: boolean }} props
+ * @param {{ gameState: { snake: Array, fields: Array }, className?: string, showSnake?: boolean, animateFields?: boolean, capturedField?: object|null }} props
  */
-export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false, verifyAppearing = false }) {
+export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false, verifyAppearing = false, capturedField = null }) {
   const boardRef = useRef(null)
   const [cellSize, setCellSize] = useState({ w: 0, h: 0 })
+  const [particleBursts, setParticleBursts] = useState([])
+  const prevCapturedRef = useRef(null)
 
   // Compute cell size from container dimensions
   useEffect(() => {
@@ -31,6 +36,32 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+
+  // Spawn particle burst when a field is newly captured
+  useEffect(() => {
+    if (!capturedField || capturedField === prevCapturedRef.current) return
+    if (!cellSize.w || !cellSize.h) return
+    prevCapturedRef.current = capturedField
+
+    const rect = capturedField.getRect ? capturedField.getRect() : capturedField
+    const cx = (rect.col + (rect.width ?? 2) / 2) * cellSize.w
+    const cy = (rect.row + (rect.height ?? 1) / 2) * cellSize.h
+
+    const particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+      const angle = (i / PARTICLE_COUNT) * Math.PI * 2 + Math.random() * 0.5
+      const dist = 35 + Math.random() * 45
+      return {
+        dx: Math.cos(angle) * dist,
+        dy: Math.sin(angle) * dist,
+        color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+        size: 4 + Math.floor(Math.random() * 5),
+      }
+    })
+
+    const id = Date.now()
+    setParticleBursts(b => [...b, { id, cx, cy, particles }])
+    setTimeout(() => setParticleBursts(b => b.filter(burst => burst.id !== id)), 650)
+  }, [capturedField, cellSize])
 
   const { snake = [], fields = [] } = gameState ?? {}
 
@@ -72,6 +103,26 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
           </div>
         )
       })}
+
+      {/* Particle bursts on field capture */}
+      {particleBursts.map(burst =>
+        burst.particles.map((p, i) => (
+          <div
+            key={`${burst.id}-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: burst.cx - p.size / 2,
+              top: burst.cy - p.size / 2,
+              width: p.size,
+              height: p.size,
+              backgroundColor: p.color,
+              '--dx': `${p.dx}px`,
+              '--dy': `${p.dy}px`,
+              animation: 'particle-fly 0.6s ease-out forwards',
+            }}
+          />
+        ))
+      )}
 
       {/* Snake */}
       {showSnake && snake.map((seg, i) => {

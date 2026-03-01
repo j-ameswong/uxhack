@@ -9,6 +9,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnakeGame } from "../hooks/useSnakeGame.js";
+import { useAudio } from "../hooks/useAudio.js";
 import { GameBoard } from "./GameBoard.jsx";
 import { InputOverlay } from "./InputOverlay.jsx";
 import { cn } from "./ui/utils.js";
@@ -28,6 +29,7 @@ function pickRandomField(exclude) {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { play: playAudio } = useAudio();
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
@@ -36,6 +38,13 @@ export function LoginPage() {
   const [activeField, setActiveField] = useState(
     () => FIELD_NAMES[Math.floor(Math.random() * FIELD_NAMES.length)]
   );
+
+  // Play fahhhhh whenever the active field switches (skip first render)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    playAudio('fieldSwitch');
+  }, [activeField]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Shake state
   const [shakeIntensity, setShakeIntensity] = useState(0);

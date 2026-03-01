@@ -60,7 +60,7 @@ function GamePage() {
       />
 
       {/* Game board — always mounted */}
-      <GameBoard gameState={gameState} showFireBorder={started} className="absolute inset-0" />
+      <GameBoard gameState={gameState} showFireBorder={started} capturedField={capturedField} className="absolute inset-0" />
 
       {/* Start screen */}
       {!started && !scattering && !morphing && !cardFading && (

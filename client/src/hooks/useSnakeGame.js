@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useGameLoop } from './useGameLoop.js'
 import { useKeyboard } from './useKeyboard.js'
 import { useTimer } from './useTimer.js'
+import { useAudio } from './useAudio.js'
 import { useGameContext } from '../context/GameContext.jsx'
 import { VERIFY_TICK_RATE_MS, GRID_COLS, GRID_ROWS } from '../game/constants.js'
 import { generateSpacedPositions } from '../game/fields.js'
@@ -35,10 +36,24 @@ export function useSnakeGame({ onComplete } = {}) {
   const deathsRef = useRef(0)
   deathsRef.current = deaths
 
+  const { init: initAudio, play: playAudio } = useAudio()
+
+  // Satisfy autoplay policy: init audio on first keydown
+  useEffect(() => {
+    function handleFirstKey() {
+      initAudio()
+      window.removeEventListener('keydown', handleFirstKey)
+    }
+    window.addEventListener('keydown', handleFirstKey)
+    return () => window.removeEventListener('keydown', handleFirstKey)
+  }, [initAudio])
+
   const handleDeath = useCallback(() => {
     setDeaths(d => d + 1)
     setCapturedField(null)
     confirmedCountRef.current = 0
+
+    playAudio('death')
 
     // Trigger the flash effect
     setIsFlashing(true)
@@ -46,23 +61,26 @@ export function useSnakeGame({ onComplete } = {}) {
 
     // After flash, start countdown (engine already stopped + reset by tick())
     setTimeout(() => {
-      setDeathCountdown(3)
-      setTimeout(() => setDeathCountdown(2), 1000)
-      setTimeout(() => setDeathCountdown(1), 2000)
+      playAudio('countdown'); setDeathCountdown(3)
+      setTimeout(() => { playAudio('countdown'); setDeathCountdown(2) }, 1000)
+      setTimeout(() => { playAudio('countdown'); setDeathCountdown(1) }, 2000)
       setTimeout(() => {
         setDeathCountdown(null)
+        playAudio('scatter')
         startGame()
       }, 3000)
     }, 800)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [playAudio]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFieldCaptured = useCallback((field) => {
+    playAudio('capture')
     setCapturedField(field)
-  }, [])
+  }, [playAudio])
 
   const { engineRef, gameState, startGame, stopGame, resetGame, resetSnake, resumeGame } = useGameLoop({
     onDeath: handleDeath,
     onFieldCaptured: handleFieldCaptured,
+    onTick: () => playAudio('step'),
   })
 
   const handleTimeUp = useCallback(() => {
@@ -198,6 +216,8 @@ export function useSnakeGame({ onComplete } = {}) {
         const engine = engineRef.current
         if (!engine) return
 
+        playAudio('scatter')
+
         // Snapshot starting positions and generate well-spaced targets
         const starts = engine.fields.map(f => ({ col: f.col, row: f.row }))
         const targets = generateSpacedPositions(engine.fields)
@@ -260,9 +280,9 @@ export function useSnakeGame({ onComplete } = {}) {
             // Phase 4: countdown then start
             setScattering(false)
             setStarted(true)
-            setDeathCountdown(3)
-            setTimeout(() => setDeathCountdown(2), 1000)
-            setTimeout(() => setDeathCountdown(1), 2000)
+            playAudio('countdown'); setDeathCountdown(3)
+            setTimeout(() => { playAudio('countdown'); setDeathCountdown(2) }, 1000)
+            setTimeout(() => { playAudio('countdown'); setDeathCountdown(1) }, 2000)
             setTimeout(() => {
               setDeathCountdown(null)
               startGame()
@@ -273,7 +293,7 @@ export function useSnakeGame({ onComplete } = {}) {
         requestAnimationFrame(animateSpiral)
       }, APPEAR_DELAY_MS)
     }, MORPH_DURATION_MS)
-  }, [startGame, engineRef])
+  }, [startGame, engineRef, playAudio])
 
   return {
     engineRef,

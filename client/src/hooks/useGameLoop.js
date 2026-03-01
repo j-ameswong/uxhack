@@ -32,6 +32,7 @@ export function useGameLoop(callbacks = {}) {
 
   const onTick = useCallback((state) => {
     setGameState(state)
+    callbacksRef.current.onTick?.()
   }, [])
 
   // ── Mount engine once ─────────────────────────────────────

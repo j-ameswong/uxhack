@@ -242,4 +242,9 @@
   .field-shake {
     animation: field-shake 1.8s ease-out;
   }
+
+  @keyframes particle-fly {
+    0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+  }
 }
