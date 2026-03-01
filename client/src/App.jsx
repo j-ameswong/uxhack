@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -19,6 +19,11 @@ import { LeaderboardModal } from "./components/LeaderboardModal.jsx";
 
 function GamePage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.body.classList.add('game-active');
+    return () => document.body.classList.remove('game-active');
+  }, []);
 
   const onComplete = useCallback(
     (result) => {
@@ -254,15 +259,15 @@ function LeaderboardPage() {
   // ── Standalone leaderboard (no game result) ──
   if (!hasGameResult) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4" style={{ backgroundColor: '#1a1a2e' }}>
+      <div className="min-h-screen w-full overflow-y-auto p-4" style={{ backgroundColor: '#1a1a2e' }}>
         <div
-          className="absolute inset-0 opacity-10 pointer-events-none"
+          className="fixed inset-0 opacity-10 pointer-events-none"
           style={{
             backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
             backgroundSize: '20px 20px',
           }}
         />
-        <div className="relative pixel-bevel max-w-lg w-full text-center" style={{ backgroundColor: '#25253e' }}>
+        <div className="relative pixel-bevel max-w-lg w-full mx-auto text-center my-8" style={{ backgroundColor: '#25253e' }}>
           <div className="flex items-center px-3 py-2" style={{
             backgroundColor: '#4ade80',
             borderBottom: '3px solid #166534',
@@ -318,7 +323,7 @@ function LeaderboardPage() {
           <div className="mb-2 flex justify-center">
             <img
               src="https://media.tenor.com/DpJdyKQKgYkAAAAi/cat-jump.gif"
-              style={{ width: 120, height: 120 }}
+              style={{ width: 80, height: 80 }}
             />
           </div>
           <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '1rem', color: '#4ade80' }}>
