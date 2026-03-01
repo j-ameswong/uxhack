@@ -357,15 +357,6 @@ Table: `submissions`
 
 ## Risk Register
 
-| Risk | Mitigation |
-|---|---|
-| Canvas performance on low-end hardware | Keep grid ≤ 40×30. Avoid expensive draw ops. Test early on non-dev machine. |
-| Arrow keys scroll the page | `event.preventDefault()` on arrow keys when game active; re-enable on blur |
-| Autoplay audio blocked | Trigger all audio on first `keydown`, not page load. Howler handles the policy. |
-| CORS issues (dev) | `express cors()` from day one; Vite proxy `/api → localhost:3001` in dev |
-| Email storage / GDPR | SHA-256 hash only — raw email never persisted. Mention openly to judges. |
-| Time pressure | Build canvas engine first. Leaderboard (only true full-stack req) can be added last. |
-
 ---
 
 ## Coding Conventions
@@ -378,14 +369,10 @@ Table: `submissions`
 
 ## TODO / Open Issues
 
-### Bugs
-- **Snake dies after reset-to-center post-capture:** When the snake is near a wall when it captures a field and enters input mode, on resume it triggers an immediate wall collision and dies. Root cause: the engine doesn't clear pending movement state when it resumes at the center position after a death that happened during input mode.
-
-### Remaining Features
-- **Audio (Stage 8):** `howler` is installed in client but not wired up. Needs: scatter sound, capture sound, death sound. All must trigger after first `keydown` to satisfy autoplay policy.
-- **Deployment (Stage 9):** Not yet deployed. Server needs to serve `/client/dist` in production.
-
 ### Nice to Haves
-- Particle burst on field capture
 - Snake smooth movement between grid cells (CSS transition)
+
+### Tomorrow's TODOs
+- **Validate Password shake missing on Play Again:** The card shake animation on the Validate Password field does not trigger when the game is launched via Play Again — only on first load. Investigate why the animation state isn't reset/retriggered on replay.
+- **Play Again score overwrite with personal best indicator:** If the same user completes the game again with a better score (matched by email hash), overwrite their leaderboard entry instead of inserting a new row. Show a "New Personal Best!" indicator on the completion screen when this happens.
 

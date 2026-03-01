@@ -211,6 +211,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
             <input
               ref={inputRef}
               type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
+              autoComplete="off"
               value={value}
               onChange={handleChange}
               onKeyDown={handleKeyDown}

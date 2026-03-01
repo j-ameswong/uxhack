@@ -349,6 +349,7 @@ function LeaderboardPage() {
                       onKeyDown={e => e.key === 'Enter' && saveName()}
                       maxLength={20}
                       autoFocus
+                      autoComplete="off"
                       className="pixel-bevel-inset px-2 py-1 text-center"
                       style={{
                         fontFamily: 'var(--font-pixel)',

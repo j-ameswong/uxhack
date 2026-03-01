@@ -57,6 +57,12 @@ export function LoginPage() {
   const glitchTimer = useRef(null);
   const glitchPityCounter = useRef(0);
 
+  // Pixel-art reveal on submit (shows the "glitch" version properly before game starts)
+  const [pixelReveal, setPixelReveal] = useState(false);
+  const [pixelRevealFading, setPixelRevealFading] = useState(false);
+  const pixelRevealTimer = useRef(null);
+  const pixelRevealFadeTimer = useRef(null);
+
   const onComplete = useCallback(
     (result) => {
       navigate("/leaderboard", { state: result });
@@ -154,9 +160,9 @@ export function LoginPage() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!canSubmit || started) return;
+    if (!canSubmit || started || pixelReveal) return;
 
-    // Measure actual form input positions and align game fields to match
+    // Measure actual form input positions NOW (while the form is still in the DOM)
     const cellW = window.innerWidth / GRID_COLS;
     const cellH = window.innerHeight / GRID_ROWS;
     const fields = engineRef.current?.fields;
@@ -196,7 +202,18 @@ export function LoginPage() {
       });
     }
 
-    beginGame();
+    // Show the pixel-art version for 2.4s so the user can appreciate what the
+    // "glitches" were hinting at — fade out over the last 400ms, then morph
+    setPixelReveal(true);
+    setPixelRevealFading(false);
+    clearTimeout(pixelRevealTimer.current);
+    clearTimeout(pixelRevealFadeTimer.current);
+    pixelRevealFadeTimer.current = setTimeout(() => setPixelRevealFading(true), 2000);
+    pixelRevealTimer.current = setTimeout(() => {
+      setPixelReveal(false);
+      setPixelRevealFading(false);
+      beginGame();
+    }, 2400);
   }
 
   const shakeOffset = shakeIntensity * 2;
@@ -221,9 +238,17 @@ export function LoginPage() {
         }
       `}</style>
 
-      {/* ── Glitch flash: pixel-art version of the form ── */}
-      {glitchFlash && !started && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4" style={{ backgroundColor: '#1a1a2e' }}>
+      {/* ── Glitch flash / submit pixel-art reveal ── */}
+      {(glitchFlash || pixelReveal) && !started && (
+        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4"
+          style={{
+            backgroundColor: '#1a1a2e',
+            // On proper reveal: fade out over 400ms once pixelRevealFading flips.
+            // Glitch flashes are hardcoded to no transition so they cut in/out.
+            transition: pixelReveal ? 'opacity 400ms ease-in' : 'none',
+            opacity: pixelRevealFading ? 0 : 1,
+          }}
+        >
           <div
             className="absolute inset-0 opacity-10 pointer-events-none"
             style={{
@@ -287,7 +312,7 @@ export function LoginPage() {
         />
       )}
 
-      {/* ── Morph divs: form inputs transitioning into game fields ── */}
+      {/* ── Morph divs: pixel-art inputs flying to game field positions ── */}
       {morphing && inputRects && inputRects.map((r, i) => (
         <div
           key={`morph-${i}`}
@@ -297,17 +322,15 @@ export function LoginPage() {
             top: morphed ? r.targetTop : r.startTop,
             width: morphed ? r.targetWidth : r.startWidth,
             height: morphed ? r.targetHeight : r.startHeight,
-            backgroundColor: morphed ? '#3b3b5c' : 'rgba(255,255,255,0.5)',
-            borderRadius: morphed ? '0px' : '6px',
-            border: morphed ? '3px solid #5a5a7a' : '1px solid #d1d5db',
+            backgroundColor: '#1a1a2e',
+            borderRadius: '0px',
+            border: 'none',
             opacity: morphed ? 0 : 1,
-            fontFamily: morphed ? 'var(--font-pixel)' : 'system-ui, -apple-system, sans-serif',
-            fontSize: morphed ? '0.75rem' : '0.875rem',
-            color: morphed ? '#4ade80' : '#9ca3af',
+            fontFamily: 'var(--font-pixel)',
+            fontSize: '0.625rem',
+            color: '#4ade80',
             transition: 'all 1800ms ease-in-out',
-            boxShadow: morphed
-              ? 'inset -2px -2px 0 #2a2a44, inset 2px 2px 0 #4a4a6a'
-              : '0 1px 2px rgba(0,0,0,0.05)',
+            boxShadow: 'inset -2px -2px 0 #000, inset 2px 2px 0 #4a4a6a',
           }}
         >
           <span className="truncate px-2">{r.label}</span>
@@ -315,7 +338,7 @@ export function LoginPage() {
       ))}
 
       {/* ── Pre-game: Corporate glassmorphic login form ── */}
-      {!started && !scattering && (
+      {!started && !scattering && !pixelReveal && (
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center z-10 p-4 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100",
@@ -346,7 +369,7 @@ export function LoginPage() {
               <CardDescription className="text-gray-500" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>Fill in the form to get started</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4" onSubmit={handleSubmit} style={{ '--ring': '#6366f1' }}>
+              <form className="space-y-4" onSubmit={handleSubmit} autoComplete="off" style={{ '--ring': '#6366f1' }}>
                 {/* Name field */}
                 <div className="space-y-2 transition-opacity duration-200" style={{ opacity: isActive("name") ? 1 : 0.35 }}>
                   <Label htmlFor="name" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
