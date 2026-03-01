@@ -32,15 +32,38 @@
 /
 ├── client/
 │   ├── src/
-│   │   ├── game/          # Pure game engine — snake loop, collision, field AI
-│   │   ├── components/    # HUD, leaderboard modal, input capture overlay
-│   │   └── hooks/         # useGameLoop, useKeyboard
-│   └── vite.config.js     # Proxy: /api -> localhost:3001
+│   │   ├── game/           # Pure game engine — snake loop, collision, field AI
+│   │   │   ├── engine.js   # GameEngine class
+│   │   │   ├── fields.js   # Field class + factory fns (createFormPositionFields, createVerifyField)
+│   │   │   ├── constants.js
+│   │   │   └── draw.js     # Legacy canvas renderer (kept for reference, not used)
+│   │   ├── components/     # React UI components
+│   │   │   ├── LandingPage.jsx     # Marketing landing page (route: /)
+│   │   │   ├── LoginPage.jsx       # Pre-game glossy form (route: /signup)
+│   │   │   ├── GameBoard.jsx       # DOM-based game renderer
+│   │   │   ├── FireBorder.jsx      # Animated fire edge effect
+│   │   │   ├── InputOverlay.jsx    # Pixel-art input modal on field capture
+│   │   │   ├── LeaderboardModal.jsx
+│   │   │   └── ui/                 # shadcn/ui components
+│   │   ├── context/
+│   │   │   └── GameContext.jsx     # Captured form values (name, email, password)
+│   │   ├── hooks/
+│   │   │   ├── useGameLoop.js      # Mounts engine, exposes gameState
+│   │   │   ├── useKeyboard.js      # Arrow/WASD input
+│   │   │   ├── useTimer.js         # 120s countdown + penalize(ms)
+│   │   │   └── useSnakeGame.js     # Consolidated game state hook
+│   │   ├── styles/
+│   │   │   ├── theme.css           # AllocateMe pixel-art colour scheme
+│   │   │   └── tailwind.css
+│   │   └── assets/
+│   │       └── happy.gif
+│   └── vite.config.js      # Proxy: /api -> localhost:3001
 ├── server/
 │   ├── routes/
-│   │   ├── submissions.js # POST /api/submit
-│   │   └── leaderboard.js # GET /api/leaderboard
-│   └── db.js              # SQLite connection and schema init
+│   │   ├── submissions.js  # POST /api/submit, PATCH /:id/name, PATCH /:id/frame-color
+│   │   └── leaderboard.js  # GET /api/leaderboard
+│   ├── db.js               # SQLite connection and schema init
+│   └── index.js
 └── CLAUDE.md
 ```
 
@@ -53,9 +76,21 @@
 - **Success:** `201` → `{ rank, id }`
 - **Failure:** `400` on invalid input
 
+### `PATCH /api/submit/:id/name`
+- **Body:** `{ name }` — one-time display name edit
+- **Success:** `200 { ok: true }`
+- **Failure:** `403` if already changed, `404` if not found
+
+### `PATCH /api/submit/:id/frame-color`
+- **Body:** `{ frameColor, frameColor2? }` — set leaderboard frame colour(s)
+- **Success:** `200 { ok: true }`
+
 ### `GET /api/leaderboard`
-- **Response:** `[{ rank, name, timeMs, deaths, createdAt }]` (top 10, sorted by `timeMs` ASC, then `deaths` ASC)
+- **Response:** `[{ rank, id, name, timeMs, deaths, frameColor, frameColor2, createdAt }]` (top 10, sorted by `timeMs` ASC, then `deaths` ASC)
 - No authentication required.
+
+### `GET /api/health`
+- **Response:** `{ status: "ok" }`
 
 ---
 
@@ -70,6 +105,9 @@ Table: `submissions`
 | `email_hash` | TEXT NOT NULL | SHA-256 of raw email — never store plaintext |
 | `time_ms` | INTEGER NOT NULL | Completion time in milliseconds |
 | `deaths` | INTEGER NOT NULL DEFAULT 0 | |
+| `frame_color` | TEXT DEFAULT NULL | Hex string e.g. `#ffd700` |
+| `frame_color_2` | TEXT DEFAULT NULL | Second hex for dual-gradient (top 3 only) |
+| `name_changed` | INTEGER DEFAULT 0 | Flag — prevents editing display name more than once |
 | `created_at` | DATETIME DEFAULT CURRENT_TIMESTAMP | |
 
 ---
@@ -87,14 +125,15 @@ Table: `submissions`
 
 ## Game Constants (Configurable)
 
-| Constant | Default | Description |
+| Constant | Value | Description |
 |---|---|---|
-| `TICK_RATE_MS` | 150 | Milliseconds per snake tick |
-| `TICK_RATE_INCREASE_MS` | 45 | Speed increase per captured field (floored at 50 ms/tick) |
-| `FLEE_RADIUS` | 8 | Grid cells — flee AI activation distance |
-| `GRID_COLS` | 40 | Logical grid width |
-| `GRID_ROWS` | 30 | Logical grid height |
-| `SCATTER_DELAY_MS` | 1500 | Delay before fields scatter on load |
+| `TICK_RATE_MS` | 40 | Milliseconds per snake tick (initial speed) |
+| `TICK_RATE_INCREASE_MS` | 10 | Speed increase per captured field (floored at 20 ms/tick) |
+| `VERIFY_TICK_RATE_MS` | 20 | Tick rate during Verify Password phase |
+| `FLEE_RADIUS` | 15 | Grid cells — locked field aggressive flee radius |
+| `GRID_COLS` | 100 | Logical grid width |
+| `GRID_ROWS` | 75 | Logical grid height |
+| `SCATTER_DELAY_MS` | 3000 | Scatter animation duration |
 
 ---
 
@@ -249,35 +288,45 @@ Table: `submissions`
 
 ---
 
-### Stage 7 — HUD & Completion Screen
+### Stage 7 — HUD & Completion Screen ✅
 **Goal:** Persistent on-screen HUD; polished completion screen.
 
-- [ ] **`client/src/components/HUD.jsx`:**
-  - [ ] Timer (elapsed `mm:ss.ms` since game start, paused during input mode)
-  - [ ] Death counter
-  - [ ] Fields remaining indicator (e.g. `Fields: 2 / 3`)
-- [ ] **Completion Screen:**
-  - [ ] Display personal time and death count
-  - [ ] Display rank (e.g. `#3 of 47`)
-  - [ ] Render `<LeaderboardModal>` below
-  - [ ] "Play Again" button resets all state
-- [ ] Death handling: snake resets to centre, all uncaptured fields scatter to new random positions, death counter increments, timer continues running
-- [ ] Initial scatter: 1.5s delay on first load, fields scatter with animation, instruction text appears briefly
-- [ ] Verify: HUD updates live, death resets correct, completion screen renders full data
+- [x] Timer — 120s countdown displayed in HUD, paused during input mode; penalised on bad input
+- [x] Death counter displayed in HUD
+- [x] Completion screen: personal time + death count + rank + leaderboard below
+- [x] "Play Again" button resets all state
+- [x] Death handling: snake resets to centre, uncaptured fields scatter, death counter increments, timer continues
+- [x] Initial animation: fields start in form positions, then spiral/scatter to game positions (3s easing)
+- [x] 3-2-1 countdown overlay before game restarts after death
+- [x] Time's up: full-screen overlay, 1.5s delay, then restart (death counted)
+- [x] Red screen flash on death (100ms)
+- [x] Penalty flash on timer deduction (red HUD for 200-400ms) with "-Xs" label
+
+**Additional features added during Stage 7 (beyond original spec):**
+- `LandingPage.jsx` — marketing landing page at `/`, routes to `/signup`
+- App routes: `/` → LandingPage, `/signup` → LoginPage, `/game` → GamePage, `/leaderboard` → LeaderboardPage
+- `FireBorder.jsx` — animated clockwise fire trail around game board edges (spawned on game start)
+- Pre-game form (LoginPage): card shakes on typing (intensity scales with completed fields), glitch flash effect (pixel-art overlay), only one field editable at a time
+- Morph animation: form inputs cross-fade into game fields (1.8s CSS transition), followed by spiral scatter
+- **Progressive password rules** (5 levels): ≥8 chars → uppercase → digit sum ≥25 → emoji → prime number
+- Password field locked until Name+Email captured; flees aggressively (4 cells/tick) when locked + near
+- Char-typed penalty: each character typed in input costs -1s and grows snake by 1 segment
+- Failed validation penalty: -5s
+- Leaderboard post-game: one-time display name edit; frame colour picker (single or dual-gradient for top 3)
+- Top-3 leaderboard rows: rainbow name animation + dual-colour JS-animated gradient border
+- `PATCH /api/submit/:id/name` and `PATCH /api/submit/:id/frame-color` endpoints added to server
 
 ---
 
 ### Stage 8 — Audio & Visual Polish
 **Goal:** Sound effects and particle effects completing the game feel.
 
-- [ ] Install and configure `howler.js` in client
-- [ ] Trigger all sounds on first `keydown` (satisfies autoplay policy)
+- [ ] Trigger all sounds on first `keydown` (satisfies autoplay policy) — `howler` installed but not integrated
 - [ ] Sound effects:
   - [ ] Fields scatter (`boing` / `whoosh`) — on initial scatter and on death-reset scatter
   - [ ] Field captured (satisfying `pop` or `chomp`)
-- [ ] Particle burst on field capture (canvas-drawn; simple radial dots expanding outward)
-- [ ] Snake smooth movement: CSS transition or canvas interpolation between grid cells
-- [ ] Verify: audio plays correctly, no autoplay errors in console, particles render on capture
+- [ ] Particle burst on field capture
+- [ ] Verify: audio plays correctly, no autoplay errors in console
 
 ---
 
@@ -327,18 +376,16 @@ Table: `submissions`
 - Constants are defined once in `constants.js` and imported everywhere — no magic numbers in engine code.
 - Commit after each stage is verified working.
 
-## TODO:
-- When the snake goes out of bounds after capturing an input, it speeds up and resets to the center, but the snake dies and resets after moving a few tiles, when it should continue normally after being reset to the center.
+## TODO / Open Issues
 
-- Not a bug, but the timer should tick down by a certain amount for each death the user experiences.
+### Bugs
+- **Snake dies after reset-to-center post-capture:** When the snake is near a wall when it captures a field and enters input mode, on resume it triggers an immediate wall collision and dies. Root cause: the engine doesn't clear pending movement state when it resumes at the center position after a death that happened during input mode.
 
-- Giving the wrong validation should reduce the time as well.
+### Remaining Features
+- **Audio (Stage 8):** `howler` is installed in client but not wired up. Needs: scatter sound, capture sound, death sound. All must trigger after first `keydown` to satisfy autoplay policy.
+- **Deployment (Stage 9):** Not yet deployed. Server needs to serve `/client/dist` in production.
 
-- ✅ There should be a visual indicator on death → screen flashes red on death (done)
-
-- Nice to have: An animation before the game starts, where the fields start in the position of the initial login form, then get shuffled to their randomised positions
-
-- ✅ Redesign the color scheme to use the AllocateMe color scheme → done via theme.css + shadcn/ui refactor
-
-- Add sound
+### Nice to Haves
+- Particle burst on field capture
+- Snake smooth movement between grid cells (CSS transition)
 
