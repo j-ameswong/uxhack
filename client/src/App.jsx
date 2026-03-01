@@ -42,6 +42,7 @@ function GamePage() {
     capturedField,
     showTooltip,
     deathCountdown,
+    verifyAppearing,
     showFailed,
     timerDisplay,
     penaltyFlash,
@@ -66,7 +67,7 @@ function GamePage() {
       />
 
       {/* Game board — always mounted */}
-      <GameBoard gameState={gameState} showFireBorder={started} capturedField={capturedField} tickRate={tickRate} className="absolute inset-0" />
+      <GameBoard gameState={gameState} showFireBorder={started} capturedField={capturedField} tickRate={tickRate} verifyAppearing={verifyAppearing} className="absolute inset-0" />
 
       {/* Start screen */}
       {!started && !scattering && !morphing && !cardFading && (
