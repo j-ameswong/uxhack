@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useSnakeGame } from "./hooks/useSnakeGame.js";
+import { useGameContext } from "./context/GameContext.jsx";
 import { LandingPage } from "./components/LandingPage.jsx";
 import { LoginPage } from "./components/LoginPage.jsx";
 import { InputOverlay } from "./components/InputOverlay.jsx";
@@ -167,10 +168,29 @@ function GamePage() {
 
 // ── Success Page ─────────────────────────────────────────────
 
+const FRAME_COLORS = [
+  { label: 'Gold',    value: '#ffd700' },
+  { label: 'Crimson', value: '#dc143c' },
+  { label: 'Cyan',    value: '#00ffff' },
+  { label: 'Magenta', value: '#ff00ff' },
+  { label: 'Lime',    value: '#00ff00' },
+  { label: 'Orange',  value: '#ff8c00' },
+  { label: 'Silver',  value: '#c0c0c0' },
+];
+
 function SuccessPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { rank, id, deaths, timeMs, submitError } = location.state ?? {};
+  const { getFieldValue } = useGameContext();
+
+  const [displayName, setDisplayName] = useState(getFieldValue('Name') || '');
+  const [editingName, setEditingName] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
+
+  const [frameColor, setFrameColor] = useState('#ffd700');
+  const [frameColorSaved, setFrameColorSaved] = useState(false);
+  const [leaderboardKey, setLeaderboardKey] = useState(0);
 
   function formatTime(ms) {
     if (ms == null) return "--:--";
@@ -179,6 +199,40 @@ function SuccessPage() {
     const seconds = totalSeconds % 60;
     const centis = Math.floor((ms % 1000) / 10);
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${centis.toString().padStart(2, "0")}`;
+  }
+
+  async function saveName() {
+    if (!displayName.trim() || !id) return;
+    try {
+      const res = await fetch(`/api/submit/${id}/name`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: displayName.trim() }),
+      });
+      if (res.ok) {
+        setNameSaved(true);
+        setEditingName(false);
+        setLeaderboardKey(k => k + 1);
+        setTimeout(() => setNameSaved(false), 2000);
+      }
+    } catch { /* silently fail */ }
+  }
+
+  async function saveFrameColor(color) {
+    setFrameColor(color);
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/submit/${id}/frame-color`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frameColor: color }),
+      });
+      if (res.ok) {
+        setFrameColorSaved(true);
+        setLeaderboardKey(k => k + 1);
+        setTimeout(() => setFrameColorSaved(false), 2000);
+      }
+    } catch { /* silently fail */ }
   }
 
   return (
@@ -211,11 +265,74 @@ function SuccessPage() {
             />
           </div>
           <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '1rem', color: '#4ade80' }}>
-            "SIGNUP" SUCCESS!
+            &quot;SIGNUP&quot; SUCCESS!
           </div>
           <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>
             The snake has been fed.
           </p>
+
+          {/* Editable display name */}
+          {!submitError && id && (
+            <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
+              <label style={{ ...{ fontFamily: 'var(--font-pixel)' }, fontSize: '0.4rem', color: '#6a6a8a' }}>
+                DISPLAY NAME
+              </label>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                {editingName ? (
+                  <>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={e => setDisplayName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && saveName()}
+                      maxLength={20}
+                      autoFocus
+                      className="pixel-bevel-inset px-2 py-1 text-center"
+                      style={{
+                        fontFamily: 'var(--font-pixel)',
+                        fontSize: '0.5rem',
+                        color: '#e0e0e0',
+                        backgroundColor: '#1a1a2e',
+                        border: 'none',
+                        outline: 'none',
+                        width: '140px',
+                      }}
+                    />
+                    <button
+                      onClick={saveName}
+                      className="pixel-bevel px-2 py-1 cursor-pointer"
+                      style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}
+                    >
+                      SAVE
+                    </button>
+                    <button
+                      onClick={() => { setEditingName(false); setDisplayName(getFieldValue('Name') || ''); }}
+                      className="pixel-bevel px-2 py-1 cursor-pointer"
+                      style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}
+                    >
+                      X
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className={rank != null && rank <= 3 ? 'rainbow-name' : ''} style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: rank != null && rank <= 3 ? undefined : '#e0e0e0' }}>
+                      {displayName || '???'}
+                    </span>
+                    <button
+                      onClick={() => setEditingName(true)}
+                      className="pixel-bevel px-2 py-1 cursor-pointer"
+                      style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}
+                    >
+                      EDIT
+                    </button>
+                    {nameSaved && (
+                      <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-center gap-3 flex-wrap">
             {rank != null && (
@@ -235,13 +352,55 @@ function SuccessPage() {
             )}
           </div>
 
+          {/* Frame color selector — only for rank #1 */}
+          {rank === 1 && !submitError && id && (
+            <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
+              <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>
+                #1 FRAME COLOR
+              </label>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <select
+                  value={frameColor}
+                  onChange={e => saveFrameColor(e.target.value)}
+                  className="pixel-bevel-inset px-2 py-1 cursor-pointer"
+                  style={{
+                    fontFamily: 'var(--font-pixel)',
+                    fontSize: '0.5rem',
+                    color: frameColor,
+                    backgroundColor: '#1a1a2e',
+                    border: 'none',
+                    outline: 'none',
+                  }}
+                >
+                  {FRAME_COLORS.map(c => (
+                    <option key={c.value} value={c.value} style={{ color: c.value }}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+                <div
+                  className="pixel-bevel"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: frameColor,
+                    boxShadow: `0 0 8px ${frameColor}80`,
+                  }}
+                />
+                {frameColorSaved && (
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span>
+                )}
+              </div>
+            </div>
+          )}
+
           {submitError && (
             <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>
               Couldn&apos;t save your score — server unavailable.
             </p>
           )}
           {!submitError && (
-            <LeaderboardModal currentId={id} currentRank={rank} />
+            <LeaderboardModal key={leaderboardKey} currentId={id} currentRank={rank} />
           )}
 
           <button

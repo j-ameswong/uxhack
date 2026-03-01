@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', (_req, res) => {
   const rows = db
     .prepare(`
-      SELECT id, name, time_ms, deaths, created_at
+      SELECT id, name, time_ms, deaths, frame_color, created_at
       FROM submissions
       ORDER BY time_ms ASC, deaths ASC
       LIMIT 10
@@ -20,6 +20,7 @@ router.get('/', (_req, res) => {
     name: row.name,
     timeMs: row.time_ms,
     deaths: row.deaths,
+    frameColor: row.frame_color,
     createdAt: row.created_at,
   }));
 

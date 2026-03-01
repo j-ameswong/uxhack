@@ -38,4 +38,36 @@ router.post('/', (req, res) => {
   return res.status(201).json({ rank: count + 1, id });
 });
 
+// PATCH /api/submit/:id/name — update display name
+router.patch('/:id/name', (req, res) => {
+  const { name } = req.body;
+  const { id } = req.params;
+
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+
+  const result = db.prepare('UPDATE submissions SET name = ? WHERE id = ?').run(name.trim(), id);
+  if (result.changes === 0) {
+    return res.status(404).json({ error: 'submission not found' });
+  }
+  return res.json({ ok: true });
+});
+
+// PATCH /api/submit/:id/frame-color — update frame color (rank 1 only)
+router.patch('/:id/frame-color', (req, res) => {
+  const { frameColor } = req.body;
+  const { id } = req.params;
+
+  if (!frameColor || typeof frameColor !== 'string') {
+    return res.status(400).json({ error: 'frameColor is required' });
+  }
+
+  const result = db.prepare('UPDATE submissions SET frame_color = ? WHERE id = ?').run(frameColor.trim(), id);
+  if (result.changes === 0) {
+    return res.status(404).json({ error: 'submission not found' });
+  }
+  return res.json({ ok: true });
+});
+
 module.exports = router;
