@@ -58,11 +58,15 @@ export function FireBorder({ cellSize }) {
   const animRef = useRef(null)
   const trailHead = useRef(0)
   const lastTime = useRef(0)
+  const visited = useRef(new Set())
 
   // ~4s full loop: advance rate = totalCells / 4000 ms
   const msPerCell = 4000 / totalCells
 
   useEffect(() => {
+    // Reset visited on mount
+    visited.current = new Set()
+
     function animate(now) {
       if (!lastTime.current) lastTime.current = now
       const delta = now - lastTime.current
@@ -71,9 +75,15 @@ export function FireBorder({ cellSize }) {
       const advance = Math.floor(delta / msPerCell)
       if (advance > 0) {
         lastTime.current += advance * msPerCell
+        const prevHead = trailHead.current
         trailHead.current = (trailHead.current + advance) % totalCells
 
-        // Update only the cells that could have changed (trail region + a buffer)
+        // Mark newly passed cells as visited
+        for (let step = 1; step <= advance; step++) {
+          visited.current.add((prevHead + step) % totalCells)
+        }
+
+        // Update all cells
         const head = trailHead.current
         for (let i = 0; i < totalCells; i++) {
           const el = cellRefs.current[i]
@@ -81,8 +91,13 @@ export function FireBorder({ cellSize }) {
 
           // Distance behind the head (wrapping)
           const dist = (head - i + totalCells) % totalCells
-          const color = dist < TRAIL_LENGTH ? TRAIL_COLORS[dist] : BASE_COLOR
-          el.style.backgroundColor = color
+          if (dist < TRAIL_LENGTH) {
+            el.style.backgroundColor = TRAIL_COLORS[dist]
+          } else if (visited.current.has(i)) {
+            el.style.backgroundColor = BASE_COLOR
+          } else {
+            el.style.backgroundColor = 'transparent'
+          }
         }
       }
 
@@ -110,7 +125,7 @@ export function FireBorder({ cellSize }) {
             top: cell.row * cellSize.h,
             width: cellSize.w,
             height: cellSize.h,
-            backgroundColor: BASE_COLOR,
+            backgroundColor: 'transparent',
             pointerEvents: 'none',
           }}
         />
