@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { useSnakeGame } from "./hooks/useSnakeGame.js";
 import { useGameContext } from "./context/GameContext.jsx";
+import { cn } from "./components/ui/utils.js";
 import { LandingPage } from "./components/LandingPage.jsx";
 import { LoginPage } from "./components/LoginPage.jsx";
 import { InputOverlay } from "./components/InputOverlay.jsx";
@@ -43,6 +44,7 @@ function GamePage() {
     showTooltip,
     deathCountdown,
     verifyAppearing,
+    isFlashing,
     showFailed,
     timerDisplay,
     penaltyFlash,
@@ -67,7 +69,17 @@ function GamePage() {
       />
 
       {/* Game board — always mounted */}
-      <GameBoard gameState={gameState} showFireBorder={started} capturedField={capturedField} tickRate={tickRate} verifyAppearing={verifyAppearing} className="absolute inset-0" />
+      <GameBoard
+        gameState={gameState}
+        showFireBorder={started}
+        capturedField={capturedField}
+        tickRate={tickRate}
+        verifyAppearing={verifyAppearing}
+        className={cn(
+          "absolute inset-0 transition-colors duration-150",
+          isFlashing ? "bg-red-600/40" : penaltyFlash ? "bg-red-900/30" : "bg-transparent",
+        )}
+      />
 
       {/* Start screen */}
       {!started && !scattering && !morphing && !cardFading && (
