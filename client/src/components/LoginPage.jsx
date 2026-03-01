@@ -87,6 +87,7 @@ export function LoginPage() {
     isFlashing,
     penaltyFlash,
     penaltyAmount,
+    tickRate,
     beginGame,
     handleInputConfirm,
     handleCharTyped,
@@ -461,6 +462,7 @@ export function LoginPage() {
           gameState={gameState}
           showFireBorder={true}
           verifyAppearing={verifyAppearing}
+          tickRate={tickRate}
           className={cn(
             "absolute inset-0 transition-colors duration-150 z-10",
             isFlashing ? "bg-red-600/40" : penaltyFlash ? "bg-red-900/30" : "bg-transparent",

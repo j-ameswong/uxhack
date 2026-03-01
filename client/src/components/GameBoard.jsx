@@ -15,7 +15,7 @@ const PARTICLE_COLORS = ['#4ade80', '#22c55e', '#86efac', '#ffd700', '#ffffff']
 /**
  * @param {{ gameState: { snake: Array, fields: Array }, className?: string, showSnake?: boolean, animateFields?: boolean, capturedField?: object|null }} props
  */
-export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false, verifyAppearing = false, capturedField = null }) {
+export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false, verifyAppearing = false, capturedField = null, tickRate = 40 }) {
   const boardRef = useRef(null)
   const [cellSize, setCellSize] = useState({ w: 0, h: 0 })
   const [particleBursts, setParticleBursts] = useState([])
@@ -136,6 +136,7 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
               top: seg.row * cellSize.h,
               width: cellSize.w,
               height: cellSize.h,
+              transition: `left ${tickRate}ms linear, top ${tickRate}ms linear`,
               backgroundColor: isHead ? '#4ade80' : '#22c55e',
               borderStyle: 'solid',
               borderWidth: '2px',

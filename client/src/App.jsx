@@ -46,6 +46,7 @@ function GamePage() {
     timerDisplay,
     penaltyFlash,
     penaltyAmount,
+    tickRate,
     beginGame,
     handleInputConfirm,
     handleCharTyped,
@@ -65,7 +66,7 @@ function GamePage() {
       />
 
       {/* Game board — always mounted */}
-      <GameBoard gameState={gameState} showFireBorder={started} capturedField={capturedField} className="absolute inset-0" />
+      <GameBoard gameState={gameState} showFireBorder={started} capturedField={capturedField} tickRate={tickRate} className="absolute inset-0" />
 
       {/* Start screen */}
       {!started && !scattering && !morphing && !cardFading && (

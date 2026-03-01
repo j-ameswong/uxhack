@@ -10,7 +10,7 @@ import { useKeyboard } from './useKeyboard.js'
 import { useTimer } from './useTimer.js'
 import { useAudio } from './useAudio.js'
 import { useGameContext } from '../context/GameContext.jsx'
-import { VERIFY_TICK_RATE_MS, GRID_COLS, GRID_ROWS } from '../game/constants.js'
+import { TICK_RATE_MS, VERIFY_TICK_RATE_MS, GRID_COLS, GRID_ROWS } from '../game/constants.js'
 import { generateSpacedPositions } from '../game/fields.js'
 
 /**
@@ -75,7 +75,8 @@ export function useSnakeGame({ onComplete } = {}) {
   const handleFieldCaptured = useCallback((field) => {
     playAudio('capture')
     setCapturedField(field)
-  }, [playAudio])
+    setTickRate(engineRef.current?.tickRateMs ?? TICK_RATE_MS)
+  }, [playAudio]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { engineRef, gameState, startGame, stopGame, resetGame, resetSnake, resumeGame } = useGameLoop({
     onDeath: handleDeath,
@@ -103,6 +104,7 @@ export function useSnakeGame({ onComplete } = {}) {
 
   const [penaltyFlash, setPenaltyFlash] = useState(false)
   const [penaltyAmount, setPenaltyAmount] = useState(0)
+  const [tickRate, setTickRate] = useState(TICK_RATE_MS)
 
   const handleCharTyped = useCallback((char) => {
     engineRef.current?.growTail(char)
@@ -135,6 +137,7 @@ export function useSnakeGame({ onComplete } = {}) {
 
     if (confirmedCountRef.current >= 3 && field.label !== 'Verify Password') {
       engineRef.current.tickRateMs = VERIFY_TICK_RATE_MS
+      setTickRate(VERIFY_TICK_RATE_MS)
       engineRef.current.spawnVerifyField()
       // Brief pause to draw attention to the new field
       setVerifyAppearing(true)
@@ -201,6 +204,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const SPIRAL_AMPLITUDE = 0.35 // fraction of distance for spiral radius
 
   const beginGame = useCallback(() => {
+    setTickRate(TICK_RATE_MS)
     // Phase 1: fade card + morph form inputs into game fields (cross-fade)
     setCardFading(true)
     setMorphing(true)
@@ -312,6 +316,7 @@ export function useSnakeGame({ onComplete } = {}) {
     isFlashing,
     penaltyFlash,
     penaltyAmount,
+    tickRate,
     beginGame,
     stopGame,
     handleInputConfirm,
