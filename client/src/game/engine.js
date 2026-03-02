@@ -148,7 +148,27 @@ export class GameEngine {
       // Don't remove tail — absorb one pending growth segment
       this.pendingGrowth -= 1;
     } else {
-      this.snake.shift();
+      // Count leading char segments at the tail (index 0…charCount-1).
+      // They are permanent — slither them forward instead of shifting them off.
+      let charCount = 0;
+      while (charCount < this.snake.length && this.snake[charCount].char) {
+        charCount++;
+      }
+
+      if (charCount === 0 || charCount >= this.snake.length) {
+        // No char segments at tail — normal removal.
+        this.snake.shift();
+      } else {
+        // Ripple each char segment into the position of the one ahead of it,
+        // then remove the first non-char segment (at index charCount).
+        for (let i = 0; i < charCount - 1; i++) {
+          this.snake[i].col = this.snake[i + 1].col;
+          this.snake[i].row = this.snake[i + 1].row;
+        }
+        this.snake[charCount - 1].col = this.snake[charCount].col;
+        this.snake[charCount - 1].row = this.snake[charCount].row;
+        this.snake.splice(charCount, 1);
+      }
     }
 
     // DVD bounce: fields drift diagonally and bounce off walls and snake body

@@ -106,7 +106,7 @@ export function useSnakeGame({ onComplete } = {}) {
   // Timer pauses during field capture overlay AND during post-input countdown
   const { display: timerDisplay, elapsedMs, penalize } = useTimer(
     started,
-    !!capturedField || timerPaused,
+    timerPaused,
     handleTimeUp,
     timerResetKey,
   )
