@@ -31,7 +31,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const [verifyAppearing, setVerifyAppearing] = useState(false)
   const [showInputCountdown, setShowInputCountdown] = useState(false)
   const [timerPaused, setTimerPaused] = useState(false)
-  const { setFieldValue, getFieldValue } = useGameContext()
+  const { setFieldValue, getFieldValue, resetFormValues } = useGameContext()
 
   const confirmedCountRef = useRef(0)
   const elapsedMsRef = useRef(0)
@@ -155,9 +155,10 @@ export function useSnakeGame({ onComplete } = {}) {
     setFieldValue(field.label, value)
     setCapturedField(null)
 
-    // Verify Password → submit and navigate (no countdown)
+    // Verify Password → submit and show post-game screen (no countdown)
     if (field.label === 'Verify Password') {
       engineRef.current?.stop()
+      setStarted(false)
       const snapshot = {
         deaths: deathsRef.current,
         timeMs: elapsedMsRef.current,
@@ -327,6 +328,45 @@ export function useSnakeGame({ onComplete } = {}) {
     }, FIELD_FADE_IN_MS)
   }, [runScatterAndCountdown, engineRef, playAudio]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Full reset back to pre-game-form state — no navigation needed.
+  const resetForReplay = useCallback(() => {
+    engineRef.current?.stop()
+
+    // Reset all UI state
+    setDeaths(0)
+    setStarted(false)
+    setCapturedField(null)
+    setShowTooltip(false)
+    setShowFailed(false)
+    setIsFlashing(false)
+    setScattering(false)
+    setCardFading(false)
+    setFieldsFadingIn(false)
+    setDeathCountdown(null)
+    setVerifyAppearing(false)
+    setShowInputCountdown(false)
+    setTimerPaused(false)
+    setTickRate(TICK_RATE_MS)
+    setPenaltyFlash(false)
+    setPenaltyAmount(0)
+    setTimerResetKey(k => k + 1)
+
+    // Reset bookkeeping refs
+    confirmedCountRef.current = 0
+    loginValuesRef.current = { name: '', email: '', secret: '' }
+
+    // Reset engine: snake to centre, fields back to form positions
+    const engine = engineRef.current
+    if (engine) {
+      engine._resetSnake()
+      engine.fields = createFormPositionFields()
+      engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
+    }
+
+    // Clear captured form values
+    resetFormValues()
+  }, [engineRef, resetFormValues]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return {
     engineRef,
     gameState,
@@ -349,6 +389,7 @@ export function useSnakeGame({ onComplete } = {}) {
     loginValuesRef,
     beginGame,
     stopGame,
+    resetForReplay,
     handleInputConfirm,
     handleCharTyped,
     handleFailedValidation,

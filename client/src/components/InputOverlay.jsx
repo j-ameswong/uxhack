@@ -28,25 +28,6 @@ const PASSWORD_RULES = [
     },
     message: 'The digits in your password must add up to 25',
   },
-  {
-    test: (v) => /[\u{1F600}-\u{1F9FF}]/u.test(v),
-    message: 'Must contain an emoji',
-  },
-  {
-    test: (v) => {
-      const nums = v.match(/\d+/g)
-      if (!nums) return false
-      return nums.some(n => {
-        const num = parseInt(n, 10)
-        if (num < 2) return false
-        for (let i = 2; i <= Math.sqrt(num); i++) {
-          if (num % i === 0) return false
-        }
-        return true
-      })
-    },
-    message: 'Must contain a prime number',
-  },
 ]
 
 export function InputOverlay({

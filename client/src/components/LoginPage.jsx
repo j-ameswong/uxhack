@@ -8,11 +8,11 @@
 // ============================================================
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useSnakeGame } from "../hooks/useSnakeGame.js";
 import { useAudio } from "../hooks/useAudio.js";
 import { GameBoard } from "./GameBoard.jsx";
 import { InputOverlay } from "./InputOverlay.jsx";
+import { LeaderboardModal } from "./LeaderboardModal.jsx";
 import { cn } from "./ui/utils.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card.jsx";
 import { Input } from "./ui/input.jsx";
@@ -21,6 +21,16 @@ import { Button } from "./ui/button.jsx";
 import { Mail, User, LogIn, PawPrint } from "lucide-react";
 import { GRID_COLS, GRID_ROWS } from "../game/constants.js";
 import { FIELD_WIDTH, FIELD_HEIGHT, FIELD_MARGIN } from "../game/fields.js";
+
+const FRAME_COLORS = [
+  { label: 'Gold',    value: '#ffd700' },
+  { label: 'Crimson', value: '#dc143c' },
+  { label: 'Cyan',    value: '#00ffff' },
+  { label: 'Magenta', value: '#ff00ff' },
+  { label: 'Lime',    value: '#00ff00' },
+  { label: 'Orange',  value: '#ff8c00' },
+  { label: 'Silver',  value: '#c0c0c0' },
+];
 
 const FIELD_ORDER = ["name", "email", "verifyEmail", "secret"];
 const BAR_FILL_PER_INPUT = 20;   // progress points added per keypress
@@ -32,13 +42,24 @@ const ANIMALS = [
   "Narwhal", "Okapi", "Pangolin", "Quokka", "Tapir", "Wombat",
 ];
 
+function formatTime(ms) {
+  if (ms == null) return "--:--";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const centis = Math.floor((ms % 1000) / 10);
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${centis.toString().padStart(2, "0")}`;
+}
+
 export function LoginPage() {
-  const navigate = useNavigate();
   const { play: playAudio } = useAudio();
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formVerifyEmail, setFormVerifyEmail] = useState("");
   const [formSecret, setFormSecret] = useState("");
+
+  // Post-game result — when set, shows the inline leaderboard overlay
+  const [gameResult, setGameResult] = useState(null);
 
   // Sequential field progression: always start on "name"
   const [activeField, setActiveField] = useState("name");
@@ -74,10 +95,9 @@ export function LoginPage() {
   const pixelRevealTimer = useRef(null);
   const pixelRevealFadeTimer = useRef(null);
 
-  const onComplete = useCallback(
-    (result) => { navigate("/leaderboard", { state: result }); },
-    [navigate],
-  );
+  const onComplete = useCallback((result) => {
+    setGameResult(result);
+  }, []);
 
   const {
     engineRef,
@@ -99,11 +119,94 @@ export function LoginPage() {
     tickRate,
     showInputCountdown,
     beginGame,
+    resetForReplay,
     handleInputConfirm,
     handleCharTyped,
     handleFailedValidation,
     getFieldValue,
   } = useSnakeGame({ onComplete });
+
+  // Post-game leaderboard state
+  const [displayName, setDisplayName] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
+  const [nameChangeUsed, setNameChangeUsed] = useState(false);
+  const [frameColor, setFrameColor] = useState('#ffd700');
+  const [frameColor2, setFrameColor2] = useState('#dc143c');
+  const [frameColorSaved, setFrameColorSaved] = useState(false);
+  const [frameColorChangeUsed, setFrameColorChangeUsed] = useState(false);
+  const [leaderboardKey, setLeaderboardKey] = useState(0);
+
+  // Sync displayName from GameContext when result arrives
+  useEffect(() => {
+    if (gameResult) setDisplayName(getFieldValue('Name') || '');
+  }, [gameResult]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function saveName() {
+    if (!displayName.trim() || !gameResult?.id) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/submit/${gameResult.id}/name`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: displayName.trim() }),
+      });
+      if (res.ok) {
+        setNameSaved(true);
+        setEditingName(false);
+        setNameChangeUsed(true);
+        setLeaderboardKey(k => k + 1);
+        setTimeout(() => setNameSaved(false), 2000);
+      }
+    } catch { /* silently fail */ }
+  }
+
+  async function saveFrameColors(color1, color2) {
+    if (!gameResult?.id) return;
+    const isTop3 = gameResult.rank != null && gameResult.rank <= 3;
+    const body = { frameColor: color1 ?? frameColor };
+    if (isTop3) body.frameColor2 = color2 ?? frameColor2;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/submit/${gameResult.id}/frame-color`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setFrameColorSaved(true);
+        if (isTop3) setFrameColorChangeUsed(true);
+        setLeaderboardKey(k => k + 1);
+        setTimeout(() => setFrameColorSaved(false), 2000);
+      }
+    } catch { /* silently fail */ }
+  }
+
+  function handlePlayAgain() {
+    // Reset post-game UI state
+    setGameResult(null);
+    setDisplayName('');
+    setEditingName(false);
+    setNameSaved(false);
+    setNameChangeUsed(false);
+    setFrameColor('#ffd700');
+    setFrameColor2('#dc143c');
+    setFrameColorSaved(false);
+    setFrameColorChangeUsed(false);
+    setLeaderboardKey(0);
+
+    // Reset form fields
+    setFormName('');
+    setFormEmail('');
+    setFormVerifyEmail('');
+    setFormSecret('');
+    completedFields.current = new Set();
+    setShakeIntensity(0);
+    setBarProgress(0);
+    setActiveField('name');
+    setHasLooped(false);
+
+    // Reset engine + all game state
+    resetForReplay();
+  }
 
   // Bar decay: drain at a fixed rate while on the pre-game form
   useEffect(() => {
@@ -588,6 +691,116 @@ export function LoginPage() {
           </div>
         </div>
       )}
+
+      {/* ── Post-game leaderboard overlay ── */}
+      {gameResult && (() => {
+        const { rank, id, deaths: resultDeaths, timeMs, submitError } = gameResult;
+        const isTop3 = rank != null && rank <= 3;
+        return (
+          <div className="absolute inset-0 z-40 overflow-y-auto flex items-center justify-center p-4" style={{ backgroundColor: '#1a1a2e' }}>
+            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
+              backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+            }} />
+            <div className="relative pixel-bevel max-w-lg w-full text-center" style={{ backgroundColor: '#25253e' }}>
+              <div className="flex items-center px-3 py-2" style={{ backgroundColor: '#4ade80', borderBottom: '3px solid #166534' }}>
+                <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#1a1a2e', fontWeight: 'bold' }}>
+                  SIGNUP COMPLETE
+                </span>
+              </div>
+              <div className="p-8 space-y-6">
+                <div className="mb-2 flex justify-center">
+                  <img src="https://media.tenor.com/DpJdyKQKgYkAAAAi/cat-jump.gif" style={{ width: 80, height: 80 }} />
+                </div>
+                <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '1rem', color: '#4ade80' }}>
+                  &quot;SIGNUP&quot; SUCCESS!
+                </div>
+                <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>
+                  The snake has been fed.
+                </p>
+
+                {/* Editable display name */}
+                {!submitError && id && (
+                  <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
+                    <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>DISPLAY NAME</label>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      {editingName ? (
+                        <>
+                          <input
+                            type="text"
+                            value={displayName}
+                            onChange={e => setDisplayName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && saveName()}
+                            maxLength={20}
+                            autoFocus
+                            autoComplete="off"
+                            className="pixel-bevel-inset px-2 py-1 text-center"
+                            style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#e0e0e0', backgroundColor: '#1a1a2e', border: 'none', outline: 'none', width: '140px' }}
+                          />
+                          <button onClick={saveName} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}>SAVE</button>
+                          <button onClick={() => { setEditingName(false); setDisplayName(getFieldValue('Name') || ''); }} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}>X</button>
+                        </>
+                      ) : (
+                        <>
+                          <span className={isTop3 ? 'rainbow-name' : ''} style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: isTop3 ? undefined : '#e0e0e0' }}>
+                            {displayName || '???'}
+                          </span>
+                          {!nameChangeUsed && (
+                            <button onClick={() => setEditingName(true)} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}>EDIT</button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {nameSaved && <div className="mt-2 text-center"><span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span></div>}
+                  </div>
+                )}
+
+                <div className="flex justify-center gap-3 flex-wrap">
+                  {rank != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#6366f1' }}>RANK #{rank}</div>}
+                  {timeMs != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#4ade80' }}>{formatTime(timeMs)}</div>}
+                  {resultDeaths != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#ef4444' }}>{resultDeaths} DEATH{resultDeaths !== 1 ? 'S' : ''}</div>}
+                </div>
+
+                {/* Frame color selector */}
+                {!submitError && id && (
+                  <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
+                    <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>{isTop3 ? 'FRAME GRADIENT' : 'FRAME COLOR'}</label>
+                    <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+                      <select value={frameColor} onChange={e => { setFrameColor(e.target.value); if (!isTop3) saveFrameColors(e.target.value); }} className="pixel-bevel-inset px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: frameColor, backgroundColor: '#1a1a2e', border: 'none', outline: 'none' }}>
+                        {FRAME_COLORS.map(c => <option key={c.value} value={c.value} style={{ color: c.value }}>{c.label}</option>)}
+                      </select>
+                      {isTop3 && (
+                        <>
+                          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>+</span>
+                          <select value={frameColor2} onChange={e => setFrameColor2(e.target.value)} className="pixel-bevel-inset px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: frameColor2, backgroundColor: '#1a1a2e', border: 'none', outline: 'none' }}>
+                            {FRAME_COLORS.map(c => <option key={c.value} value={c.value} style={{ color: c.value }}>{c.label}</option>)}
+                          </select>
+                        </>
+                      )}
+                      <div className="pixel-bevel" style={{ width: 20, height: 20, background: isTop3 ? `linear-gradient(135deg, ${frameColor}, ${frameColor2})` : frameColor, boxShadow: `0 0 8px ${frameColor}80` }} />
+                      {isTop3 && !frameColorChangeUsed && (
+                        <button onClick={() => saveFrameColors()} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}>SAVE</button>
+                      )}
+                    </div>
+                    {frameColorSaved && <div className="mt-2 text-center"><span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span></div>}
+                  </div>
+                )}
+
+                {submitError && <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>Couldn&apos;t save your score — server unavailable.</p>}
+                {!submitError && <LeaderboardModal key={leaderboardKey} currentId={id} currentRank={rank} />}
+
+                <button
+                  onClick={handlePlayAgain}
+                  className="px-6 py-2 pixel-bevel cursor-pointer font-bold"
+                  style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.75rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}
+                >
+                  PLAY AGAIN
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

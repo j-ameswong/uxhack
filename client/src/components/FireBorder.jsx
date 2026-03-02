@@ -51,7 +51,7 @@ function buildEdgeCells() {
   return cells
 }
 
-export function FireBorder({ cellSize }) {
+export function FireBorder({ cellSize, fields = [] }) {
   const edgeCells = useMemo(buildEdgeCells, [])
   const totalCells = edgeCells.length
   const cellRefs = useRef([])
@@ -130,6 +130,38 @@ export function FireBorder({ cellSize }) {
           }}
         />
       ))}
+
+      {/* Top-edge status bar */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: cellSize.w,
+        right: cellSize.w,
+        height: cellSize.h,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1.5rem',
+        pointerEvents: 'none',
+        zIndex: 2,
+        fontFamily: 'var(--font-pixel)',
+        fontSize: '0.4rem',
+        color: '#ffffff',
+        textShadow: '0 0 4px #000, 1px 1px 0 #000',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+      }}>
+        <span style={{ color: '#fbbf24' }}>↑↓←→ WASD</span>
+        {fields.map((f) => {
+          const indicator = f.locked ? '[LOCKED]' : f.captured ? '[x]' : '[ ]'
+          const color = f.locked ? '#ef4444' : f.captured ? '#4ade80' : '#e0e0e0'
+          return (
+            <span key={f.label} style={{ color }}>
+              {f.label.toUpperCase()} {indicator}
+            </span>
+          )
+        })}
+      </div>
     </>
   )
 }

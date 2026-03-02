@@ -74,7 +74,7 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
       {/* Fire border */}
       {showFireBorder && (
         <div style={fireBorderFadeIn ? { animation: 'hud-fade-in 1.5s ease-in forwards' } : undefined}>
-          <FireBorder cellSize={cellSize} />
+          <FireBorder cellSize={cellSize} fields={fields} />
         </div>
       )}
 
@@ -98,7 +98,7 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
               width: fieldW,
               height: fieldH,
               backgroundColor: '#3b3b5c',
-              fontSize: Math.max(8, Math.min(fieldH * 0.28, fieldW * 0.08)),
+              fontSize: Math.max(8, Math.min(fieldH * 0.28, fieldW * (field.label === 'Verify Password' ? 0.045 : 0.08))),
               fontFamily: 'var(--font-pixel)',
               animation: fieldsFadingIn ? 'field-appear 1s ease-out forwards' : undefined,
             }}
