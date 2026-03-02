@@ -231,6 +231,10 @@ export function LoginPage() {
           from { stroke-dashoffset: 0; }
           to   { stroke-dashoffset: 100; }
         }
+        @keyframes hud-fade-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
       `}</style>
 
       {/* ── Glitch flash / submit pixel-art reveal ── */}
@@ -296,6 +300,8 @@ export function LoginPage() {
           showSnake={false}
           animateFields={false}
           fieldsFadingIn={fieldsFadingIn}
+          showFireBorder={scattering}
+          fireBorderFadeIn={true}
           className="absolute inset-0 z-[5] bg-transparent"
         />
       )}
@@ -467,8 +473,8 @@ export function LoginPage() {
       )}
 
       {/* HUD */}
-      {started && (
-        <div className="absolute top-4 right-4 z-20 flex gap-2 items-start">
+      {(scattering || started) && (
+        <div className="absolute top-4 right-4 z-20 flex gap-2 items-start" style={{ animation: 'hud-fade-in 1.5s ease-in forwards' }}>
           <div className="relative">
             <div className="pixel-bevel px-3 py-1.5 transition-colors duration-200" style={{
               backgroundColor: penaltyFlash ? '#ef4444' : '#3b3b5c',

@@ -15,7 +15,7 @@ const PARTICLE_COLORS = ['#4ade80', '#22c55e', '#86efac', '#ffd700', '#ffffff']
 /**
  * @param {{ gameState: { snake: Array, fields: Array }, className?: string, showSnake?: boolean, animateFields?: boolean, capturedField?: object|null }} props
  */
-export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false, verifyAppearing = false, capturedField = null, tickRate = 40, fieldsFadingIn = false }) {
+export function GameBoard({ gameState, className, showSnake = true, animateFields = false, showFireBorder = false, fireBorderFadeIn = false, verifyAppearing = false, capturedField = null, tickRate = 40, fieldsFadingIn = false }) {
   const boardRef = useRef(null)
   const [cellSize, setCellSize] = useState({ w: 0, h: 0 })
   const [particleBursts, setParticleBursts] = useState([])
@@ -71,7 +71,11 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
       className={cn('relative w-full h-full overflow-hidden bg-background', className)}
     >
       {/* Fire border */}
-      {showFireBorder && <FireBorder cellSize={cellSize} />}
+      {showFireBorder && (
+        <div style={fireBorderFadeIn ? { animation: 'hud-fade-in 1.5s ease-in forwards' } : undefined}>
+          <FireBorder cellSize={cellSize} />
+        </div>
+      )}
 
       {/* Fields */}
       {fields.map((field) => {
