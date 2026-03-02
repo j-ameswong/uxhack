@@ -63,6 +63,7 @@ export function InputOverlay({
   const [value, setValue] = useState('')
   const [error, setError] = useState(null)
   const [passwordLevel, setPasswordLevel] = useState(0)
+  const [failedOnce, setFailedOnce] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export function InputOverlay({
   useEffect(() => {
     setValue('')
     setError(null)
+    setFailedOnce(false)
     if (field?.label === 'Password') {
       setPasswordLevel(0)
     }
@@ -150,6 +152,7 @@ export function InputOverlay({
         if (!rule.test(value)) {
           setError(`Rule ${i + 1}: ${rule.message}`)
           setValue('')
+          setFailedOnce(true)
           onFailedValidation?.()
           return
         }
@@ -162,6 +165,7 @@ export function InputOverlay({
           setPasswordLevel(nextLevel)
           setError(`Rule ${nextLevel + 1}: ${nextRule.message}`)
           setValue('')
+          setFailedOnce(true)
           onFailedValidation?.()
           return
         }
@@ -173,6 +177,7 @@ export function InputOverlay({
             setPasswordLevel(level)
             setError(`Rule ${level + 1}: ${activePasswordRules[level].message}`)
             setValue('')
+            setFailedOnce(true)
             onFailedValidation?.()
             return
           }
@@ -195,6 +200,7 @@ export function InputOverlay({
       setValue('')
       setError(null)
     } else {
+      setFailedOnce(true)
       onFailedValidation?.()
     }
   }
@@ -240,6 +246,15 @@ export function InputOverlay({
         <div className="p-4 space-y-3">
           <label className="block text-primary" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem' }}>
             Enter your {field.label}:
+            {failedOnce && field.label === 'Name' && loginName && (
+              <span style={{ opacity: 0.4, marginLeft: '0.5rem' }}>[{loginName}]</span>
+            )}
+            {failedOnce && field.label === 'Email' && loginEmail && (
+              <span style={{ opacity: 0.4, marginLeft: '0.5rem' }}>[{loginEmail}]</span>
+            )}
+            {failedOnce && isPassword && loginSecret && (
+              <span style={{ opacity: 0.4, marginLeft: '0.5rem' }}>[{loginSecret}]</span>
+            )}
           </label>
           <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
             <input

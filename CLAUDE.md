@@ -1,8 +1,8 @@
-# SnekUp — Project Planning & Progress Tracker
+# SnakeUp — Project Planning & Progress Tracker
 
 ## Project Summary
 
-**SnekUp** is a counter-intuitive sign-up experience: a full-stack web app where form fields flee from the user's cursor. The user steers a snake with arrow keys to "eat" the fields and fill them in. Completions are timed, deaths counted, and results posted to a persistent leaderboard.
+**SnakeUp** is a counter-intuitive sign-up experience: a full-stack web app where form fields flee from the user's cursor. The user steers a snake with arrow keys to "eat" the fields and fill them in. Completions are timed, deaths counted, and results posted to a persistent leaderboard.
 
 - **Theme:** Counter-Intuitive
 - **Platform:** Desktop Web Browser
@@ -227,7 +227,7 @@ Table: `submissions`
 - [x] After third field confirmed, auto-submit via "Verify Password" capture flow
 - [x] On submit: collect `{ name, email, timeMs, deaths }`, POST to `POST /api/submit`
 - [x] **Server — `server/db.js`:**
-  - [x] Open SQLite database (`./data/snekup.db`)
+  - [x] Open SQLite database (`./data/snakeup.db`)
   - [x] `CREATE TABLE IF NOT EXISTS submissions (...)` on startup
 - [x] **Server — `server/routes/submissions.js`:**
   - [x] Validate all fields (400 on failure)
@@ -318,30 +318,30 @@ Table: `submissions`
 
 ---
 
-### Stage 8 — Audio & Visual Polish ✅
+### Stage 8 — Audio & Visual Polish
 **Goal:** Sound effects and particle effects completing the game feel.
 
-- [x] Trigger all sounds on first `keydown` (satisfies autoplay policy) — `howler` installed but not integrated
-- [x] Sound effects:
-  - [x] Fields scatter (`boing` / `whoosh`) — on initial scatter and on death-reset scatter
-  - [x] Field captured (satisfying `pop` or `chomp`)
-- [x] Particle burst on field capture
-- [x] Verify: audio plays correctly, no autoplay errors in console
+- [ ] Trigger all sounds on first `keydown` (satisfies autoplay policy) — `howler` installed but not integrated
+- [ ] Sound effects:
+  - [ ] Fields scatter (`boing` / `whoosh`) — on initial scatter and on death-reset scatter
+  - [ ] Field captured (satisfying `pop` or `chomp`)
+- [ ] Particle burst on field capture
+- [ ] Verify: audio plays correctly, no autoplay errors in console
 
 ---
 
-### Stage 9 — Deployment ✅
+### Stage 9 — Deployment
 **Goal:** Publicly accessible URL for demo; both client and server live.
 
-- [x] Choose deployment target: Railway or Render
-- [x] Configure build scripts:
-  - [x] `client`: `vite build` → `/client/dist`
-  - [x] `server`: serve `/client/dist` as static files in production (`express.static`)
-- [x] Set environment variables for production (port, any secrets)
-- [x] Push to GitHub; connect repo to Railway/Render
-- [x] Confirm `/api/submit`, `/api/leaderboard`, and `/leaderboard` route all work on production URL
-- [x] Test on a non-dev machine (performance check, audio check)
-- [x] Share public URL with team
+- [ ] Choose deployment target: Railway or Render
+- [ ] Configure build scripts:
+  - [ ] `client`: `vite build` → `/client/dist`
+  - [ ] `server`: serve `/client/dist` as static files in production (`express.static`)
+- [ ] Set environment variables for production (port, any secrets)
+- [ ] Push to GitHub; connect repo to Railway/Render
+- [ ] Confirm `/api/submit`, `/api/leaderboard`, and `/leaderboard` route all work on production URL
+- [ ] Test on a non-dev machine (performance check, audio check)
+- [ ] Share public URL with team
 
 ---
 

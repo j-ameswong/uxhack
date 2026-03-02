@@ -29,7 +29,6 @@ const BAR_DECAY_AMOUNT = 1;       // points drained per interval tick
 
 const ANIMALS = [
   "Axolotl", "Capybara", "Cassowary", "Dingo", "Echidna",
-  "Fennec Fox", "Honey Badger", "Komodo Dragon", "Mantis Shrimp",
   "Narwhal", "Okapi", "Pangolin", "Quokka", "Tapir", "Wombat",
 ];
 
