@@ -680,101 +680,110 @@ export function LoginPage() {
         const { rank, id, deaths: resultDeaths, timeMs, submitError } = gameResult;
         const isTop3 = rank != null && rank <= 3;
         return (
-          <div className="absolute inset-0 z-40 overflow-y-auto flex items-start justify-center py-8 px-4" style={{ backgroundColor: '#1a1a2e' }}>
+          <div className="absolute inset-0 z-40 overflow-hidden flex items-center justify-center p-4" style={{ backgroundColor: '#1a1a2e' }}>
             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
               backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
               backgroundSize: '20px 20px',
             }} />
-            <div className="relative pixel-bevel max-w-lg w-full text-center" style={{ backgroundColor: '#25253e' }}>
-              <div className="flex items-center px-3 py-2" style={{ backgroundColor: '#4ade80', borderBottom: '3px solid #166534' }}>
+            <div className="relative pixel-bevel max-w-lg w-full text-center flex flex-col overflow-hidden" style={{ backgroundColor: '#25253e', maxHeight: 'calc(100vh - 2rem)' }}>
+              <div className="flex items-center px-3 py-2 flex-shrink-0" style={{ backgroundColor: '#4ade80', borderBottom: '3px solid #166534' }}>
                 <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#1a1a2e', fontWeight: 'bold' }}>
                   SIGNUP COMPLETE
                 </span>
               </div>
-              <div className="p-8 space-y-6">
-                <div className="mb-2 flex justify-center">
-                  <img src="https://media.tenor.com/DpJdyKQKgYkAAAAi/cat-jump.gif" style={{ width: 80, height: 80 }} />
-                </div>
-                <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '1rem', color: '#4ade80' }}>
-                  &quot;SIGNUP&quot; SUCCESS!
-                </div>
-                <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>
-                  The snake has been fed.
-                </p>
+              <div className="p-6 flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
+                {/* Fixed content — never scrolls */}
+                <div className="flex-shrink-0 flex flex-col gap-4">
+                  <div className="flex justify-center">
+                    <img src="https://media.tenor.com/DpJdyKQKgYkAAAAi/cat-jump.gif" style={{ width: 64, height: 64 }} />
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '1rem', color: '#4ade80' }}>
+                    &quot;SIGNUP&quot; SUCCESS!
+                  </div>
+                  <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>
+                    The snake has been fed.
+                  </p>
 
-                {/* Editable display name */}
-                {!submitError && id && (
-                  <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
-                    <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>DISPLAY NAME</label>
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      {editingName ? (
-                        <>
-                          <input
-                            type="text"
-                            value={displayName}
-                            onChange={e => setDisplayName(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && saveName()}
-                            maxLength={20}
-                            autoFocus
-                            autoComplete="off"
-                            className="pixel-bevel-inset px-2 py-1 text-center"
-                            style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#e0e0e0', backgroundColor: '#1a1a2e', border: 'none', outline: 'none', width: '140px' }}
-                          />
-                          <button onClick={saveName} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}>SAVE</button>
-                          <button onClick={() => { setEditingName(false); setDisplayName(getFieldValue('Name') || ''); }} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}>X</button>
-                        </>
-                      ) : (
-                        <>
-                          <span className={isTop3 ? 'rainbow-name' : ''} style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: isTop3 ? undefined : '#e0e0e0' }}>
-                            {displayName || '???'}
-                          </span>
-                          {!nameChangeUsed && (
-                            <button onClick={() => setEditingName(true)} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}>EDIT</button>
-                          )}
-                        </>
-                      )}
+                  {/* Editable display name */}
+                  {!submitError && id && (
+                    <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
+                      <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>DISPLAY NAME</label>
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        {editingName ? (
+                          <>
+                            <input
+                              type="text"
+                              value={displayName}
+                              onChange={e => setDisplayName(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && saveName()}
+                              maxLength={20}
+                              autoFocus
+                              autoComplete="off"
+                              className="pixel-bevel-inset px-2 py-1 text-center"
+                              style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#e0e0e0', backgroundColor: '#1a1a2e', border: 'none', outline: 'none', width: '140px' }}
+                            />
+                            <button onClick={saveName} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}>SAVE</button>
+                            <button onClick={() => { setEditingName(false); setDisplayName(getFieldValue('Name') || ''); }} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}>X</button>
+                          </>
+                        ) : (
+                          <>
+                            <span className={isTop3 ? 'rainbow-name' : ''} style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: isTop3 ? undefined : '#e0e0e0' }}>
+                              {displayName || '???'}
+                            </span>
+                            {!nameChangeUsed && (
+                              <button onClick={() => setEditingName(true)} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#3b3b5c', color: '#9090b0' }}>EDIT</button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      {nameSaved && <div className="mt-2 text-center"><span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span></div>}
                     </div>
-                    {nameSaved && <div className="mt-2 text-center"><span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span></div>}
+                  )}
+
+                  <div className="flex justify-center gap-3 flex-wrap">
+                    {rank != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#6366f1' }}>RANK #{rank}</div>}
+                    {timeMs != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#4ade80' }}>{formatTime(timeMs)}</div>}
+                    {resultDeaths != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#ef4444' }}>{resultDeaths} DEATH{resultDeaths !== 1 ? 'S' : ''}</div>}
+                  </div>
+
+                  {/* Frame color selector */}
+                  {!submitError && id && (
+                    <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
+                      <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>{isTop3 ? 'FRAME GRADIENT' : 'FRAME COLOR'}</label>
+                      <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+                        <select value={frameColor} onChange={e => { setFrameColor(e.target.value); if (!isTop3) saveFrameColors(e.target.value); }} className="pixel-bevel-inset px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: frameColor, backgroundColor: '#1a1a2e', border: 'none', outline: 'none' }}>
+                          {FRAME_COLORS.map(c => <option key={c.value} value={c.value} style={{ color: c.value }}>{c.label}</option>)}
+                        </select>
+                        {isTop3 && (
+                          <>
+                            <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>+</span>
+                            <select value={frameColor2} onChange={e => setFrameColor2(e.target.value)} className="pixel-bevel-inset px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: frameColor2, backgroundColor: '#1a1a2e', border: 'none', outline: 'none' }}>
+                              {FRAME_COLORS.map(c => <option key={c.value} value={c.value} style={{ color: c.value }}>{c.label}</option>)}
+                            </select>
+                          </>
+                        )}
+                        <div className="pixel-bevel" style={{ width: 20, height: 20, background: isTop3 ? `linear-gradient(135deg, ${frameColor}, ${frameColor2})` : frameColor, boxShadow: `0 0 8px ${frameColor}80` }} />
+                        {isTop3 && !frameColorChangeUsed && (
+                          <button onClick={() => saveFrameColors()} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}>SAVE</button>
+                        )}
+                      </div>
+                      {frameColorSaved && <div className="mt-2 text-center"><span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span></div>}
+                    </div>
+                  )}
+
+                  {submitError && <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>Couldn&apos;t save your score — server unavailable.</p>}
+                </div>
+
+                {/* Leaderboard — takes remaining height, scrolls internally if needed */}
+                {!submitError && (
+                  <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <LeaderboardModal key={leaderboardKey} currentId={id} currentRank={rank} />
                   </div>
                 )}
-
-                <div className="flex justify-center gap-3 flex-wrap">
-                  {rank != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#6366f1' }}>RANK #{rank}</div>}
-                  {timeMs != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#4ade80' }}>{formatTime(timeMs)}</div>}
-                  {resultDeaths != null && <div className="pixel-bevel px-3 py-1.5" style={{ backgroundColor: '#3b3b5c', fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#ef4444' }}>{resultDeaths} DEATH{resultDeaths !== 1 ? 'S' : ''}</div>}
-                </div>
-
-                {/* Frame color selector */}
-                {!submitError && id && (
-                  <div className="pixel-bevel p-3" style={{ backgroundColor: '#2a2a45' }}>
-                    <label style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>{isTop3 ? 'FRAME GRADIENT' : 'FRAME COLOR'}</label>
-                    <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-                      <select value={frameColor} onChange={e => { setFrameColor(e.target.value); if (!isTop3) saveFrameColors(e.target.value); }} className="pixel-bevel-inset px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: frameColor, backgroundColor: '#1a1a2e', border: 'none', outline: 'none' }}>
-                        {FRAME_COLORS.map(c => <option key={c.value} value={c.value} style={{ color: c.value }}>{c.label}</option>)}
-                      </select>
-                      {isTop3 && (
-                        <>
-                          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#6a6a8a' }}>+</span>
-                          <select value={frameColor2} onChange={e => setFrameColor2(e.target.value)} className="pixel-bevel-inset px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: frameColor2, backgroundColor: '#1a1a2e', border: 'none', outline: 'none' }}>
-                            {FRAME_COLORS.map(c => <option key={c.value} value={c.value} style={{ color: c.value }}>{c.label}</option>)}
-                          </select>
-                        </>
-                      )}
-                      <div className="pixel-bevel" style={{ width: 20, height: 20, background: isTop3 ? `linear-gradient(135deg, ${frameColor}, ${frameColor2})` : frameColor, boxShadow: `0 0 8px ${frameColor}80` }} />
-                      {isTop3 && !frameColorChangeUsed && (
-                        <button onClick={() => saveFrameColors()} className="pixel-bevel px-2 py-1 cursor-pointer" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}>SAVE</button>
-                      )}
-                    </div>
-                    {frameColorSaved && <div className="mt-2 text-center"><span style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#4ade80' }}>SAVED!</span></div>}
-                  </div>
-                )}
-
-                {submitError && <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.5rem', color: '#9090b0' }}>Couldn&apos;t save your score — server unavailable.</p>}
-                {!submitError && <LeaderboardModal key={leaderboardKey} currentId={id} currentRank={rank} />}
 
                 <button
                   onClick={handlePlayAgain}
-                  className="px-6 py-2 pixel-bevel cursor-pointer font-bold"
+                  className="flex-shrink-0 px-6 py-2 pixel-bevel cursor-pointer font-bold"
                   style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.75rem', backgroundColor: '#4ade80', color: '#1a1a2e' }}
                 >
                   PLAY AGAIN

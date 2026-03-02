@@ -112,9 +112,9 @@ export function LeaderboardModal({ currentId, currentRank }) {
   const userInTop10 = entries.some(e => e.id === currentId)
 
   return (
-    <div className="pixel-bevel w-full" style={{ backgroundColor: '#25253e' }}>
+    <div className="pixel-bevel w-full flex flex-col min-h-0" style={{ backgroundColor: '#25253e' }}>
       {/* Title bar */}
-      <div className="px-3 py-2" style={{
+      <div className="px-3 py-2 flex-shrink-0" style={{
         backgroundColor: '#6366f1',
         borderBottom: '3px solid #3730a3',
       }}>
@@ -123,7 +123,7 @@ export function LeaderboardModal({ currentId, currentRank }) {
         </span>
       </div>
 
-      <div className="p-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {loading && (
           <p className="text-center py-4" style={{ ...pixelFont, fontSize: '0.5rem', color: '#9090b0' }}>Loading...</p>
         )}
