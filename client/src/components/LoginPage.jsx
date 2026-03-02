@@ -79,9 +79,8 @@ export function LoginPage() {
   const completedFields = useRef(new Set());
   const shakeTimer = useRef(null);
 
-  // Glitch flash state
+  // Glitch flash state (used only on submit)
   const [glitchFlash, setGlitchFlash] = useState(false);
-  const glitchTimer = useRef(null);
 
   // Decaying progress bar (0–100)
   const [barProgress, setBarProgress] = useState(0);
@@ -217,7 +216,7 @@ export function LoginPage() {
     return () => clearInterval(id);
   }, [started]);
 
-  // Bar advance: when bar hits 100, trigger glitch flash and advance to the next field.
+  // Bar advance: when bar hits 100, advance to the next field (no glitch during form fill).
   // On the last field (secret), loops back to "name".
   useEffect(() => {
     if (started || barProgress < 100) return;
@@ -225,10 +224,7 @@ export function LoginPage() {
     const currentIdx = FIELD_ORDER.indexOf(activeFieldRef.current);
     const nextIdx = (currentIdx + 1) % FIELD_ORDER.length;
     if (nextIdx === 0) setHasLooped(true);
-    setGlitchFlash(true);
     setActiveField(FIELD_ORDER[nextIdx]);
-    clearTimeout(glitchTimer.current);
-    glitchTimer.current = setTimeout(() => setGlitchFlash(false), 120);
   }, [barProgress, started]);
 
   // Auto-focus the active field after a swap
@@ -279,7 +275,7 @@ export function LoginPage() {
   }
 
   function handleSubmit() {
-    if (!canSubmit || started || pixelReveal) return;
+    if (!canSubmit || started || pixelReveal || glitchFlash) return;
 
     // Snap engine fields to the exact pixel positions of the form inputs so they
     // emerge from behind the form layout rather than from approximate grid positions.
@@ -287,7 +283,6 @@ export function LoginPage() {
     if (engine) {
       const cellW = window.innerWidth / GRID_COLS;
       const cellH = window.innerHeight / GRID_ROWS;
-      // name → Name field, email → Email field, verifyEmail → Password field
       ['name', 'email', 'verifyEmail'].forEach((id, i) => {
         const el = document.getElementById(id);
         const field = engine.fields[i];
@@ -301,22 +296,32 @@ export function LoginPage() {
       engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false });
     }
 
-    // Show the pixel-art version for 2s, then start the game sequence simultaneously
-    // with the overlay fade-out so there is no gap where the login form reappears.
-    setPixelReveal(true);
-    setPixelRevealFading(false);
-    clearTimeout(pixelRevealTimer.current);
-    clearTimeout(pixelRevealFadeTimer.current);
-    pixelRevealFadeTimer.current = setTimeout(() => {
-      setPixelRevealFading(true);
-      // Begin game immediately — fieldsFadingIn hides the login form while the
-      // pixel overlay is still fading out (400 ms overlap, looks like a cross-fade).
-      beginGame({ name: formName, email: formEmail, secret: formSecret });
-    }, 2000);
-    pixelRevealTimer.current = setTimeout(() => {
-      setPixelReveal(false);
+    // Rapid glitch flickers (3×), then settle into the pixel-art form for 2s,
+    // then cross-fade into the game — same as before from pixelReveal onward.
+    const FLASH_ON_MS = 80;
+    const FLASH_CYCLE_MS = 160;
+    const FLASH_COUNT = 3;
+    for (let i = 0; i < FLASH_COUNT; i++) {
+      setTimeout(() => setGlitchFlash(true),  i * FLASH_CYCLE_MS);
+      setTimeout(() => setGlitchFlash(false), i * FLASH_CYCLE_MS + FLASH_ON_MS);
+    }
+
+    // After the last flicker ends, seamlessly become the persistent pixel overlay.
+    setTimeout(() => {
+      setGlitchFlash(false);
+      setPixelReveal(true);
       setPixelRevealFading(false);
-    }, 2400);
+      clearTimeout(pixelRevealTimer.current);
+      clearTimeout(pixelRevealFadeTimer.current);
+      pixelRevealFadeTimer.current = setTimeout(() => {
+        setPixelRevealFading(true);
+        beginGame({ name: formName, email: formEmail, secret: formSecret });
+      }, 2000);
+      pixelRevealTimer.current = setTimeout(() => {
+        setPixelReveal(false);
+        setPixelRevealFading(false);
+      }, 2400);
+    }, FLASH_COUNT * FLASH_CYCLE_MS);
   }
 
   const shakeOffset = shakeIntensity * 2;

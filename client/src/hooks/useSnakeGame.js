@@ -95,6 +95,7 @@ export function useSnakeGame({ onComplete } = {}) {
   const runScatterRef = useRef(null)
 
   const handleTimeUp = useCallback(() => {
+    playAudio('gameover')
     setCapturedField(null)
     setShowFailed(true)
     engineRef.current?.stop()
@@ -119,7 +120,7 @@ export function useSnakeGame({ onComplete } = {}) {
       setScattering(true)
       runScatterRef.current?.()
     }, 1500)
-  }, [engineRef]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [engineRef, playAudio]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer pauses during field capture overlay AND during post-input countdown
   const { display: timerDisplay, elapsedMs, penalize } = useTimer(
@@ -145,11 +146,12 @@ export function useSnakeGame({ onComplete } = {}) {
   }, [engineRef])
 
   const handleFailedValidation = useCallback(() => {
+    playAudio('validationFail')
     penalizeRef.current?.(5000)
     setPenaltyAmount(5)
     setPenaltyFlash(true)
     setTimeout(() => setPenaltyFlash(false), 400)
-  }, [])
+  }, [playAudio])
 
   const handleInputConfirm = useCallback(async (field, value) => {
     setFieldValue(field.label, value)

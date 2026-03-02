@@ -4,24 +4,27 @@
 
 ---
 
-SnekUp is a counter-intuitive sign-up experience. You land on what looks like a completely normal registration form with Name, Email, Password, but the moment you try to interact with it, the fields run away!
+SnekUp is a counter-intuitive sign-up experience. You land on what looks like a ~~completely~~ normal registration form  - but you quickly realize there's a gimmick, and the moment you try to submit it, the fields run away!
 
 **The only way to fill them in is to *eat* them.**
 
-You are a snake. Use the arrow/wasd keys. Chase the fields down and swallow them whole. Each capture freezes the game and drops an input prompt. Fill in the field correctly, and the snake speeds up, the timer ticks on, and the next field runs for cover.
+You are a snake. Use the arrow/WASD keys. Chase the fields down and swallow them whole. Each capture freezes the game and drops an input prompt. Fill in the field correctly, and the snake speeds up, the timer ticks on, and the next field runs for cover.
 
-Miss the wall. Don't eat yourself. Don't let the clock hit zero. Complete the form. Get on the leaderboard.
+1. Miss the wall. 
+2. Don't eat yourself. 
+3. Don't let the clock hit zero. (You get punished for typing!)
+4. Complete the form and get on the leaderboard!
 
-It's a sign-up form. It's also a snake game!
+It's a sign-up form that's-- hear me out--  also a snake game!
 
 ---
 
 ## The Flow
 
-1. **Landing** — a normal-looking marketing page. CTA: "Create Account."
+1. **Landing** — a normal-looking marketing page. Send this to someone not in the know as a prank
 2. **Pre-game form** (`/signup`) — a glossy, totally innocent sign-up card. One field active at a time. The card shakes when you type. Something is wrong.
 3. **The reveal** — click the password field. The form dissolves. Fields scatter in all directions. The game begins.
-4. **The game** (`/game`) — steer the snake with arrow keys or WASD. Fields flee when you get close. Catch them to fill them in. Miss and lose time.
+4. **The game** — steer the snake with arrow keys or WASD. Fields flee when you get close. Catch them to fill them in. Miss and lose time.
 5. **Verify Password** — once Name, Email, and Password are captured, a "Verify Password" field spawns at full throttle. One last chase.
 6. **The leaderboard** — your time, your deaths, your rank. Edit your display name once. Pick a frame colour. Top 3 get an animated dual-gradient border and a rainbow name.
 
@@ -39,21 +42,52 @@ It's a sign-up form. It's also a snake game!
 - **Invalid input** → −5 seconds, try again
 - **Each character typed** → −1 second + snake grows 1 segment (every keystroke costs you)
 - **Death** (wall or self) → red flash, 3-2-1 countdown, fields scatter, death added to your count
-- **Time's up** → counts as a death, restart
+- **Time's up** → counts as perma death, restart
+
+---
+
+## Pre-Game Form
+
+Before the game starts, you fill in a "normal" sign-up form. It has a twist:
+
+- **One field active at a time** — tabbing/clicking doesn't work, the form decides when you're ready
+- **Progress bar** — fills with each keystroke; decays when you stop; hits 100% → field locks in, glitch flash, advance
+- **Card shake** — the card shakes harder as you fill in more fields
+- **Fields:**
+  - Name
+  - Email
+  - Verify Email
+  - Secret (choose your spirit animal — you'll need it for the password)
+
+**Spirit animals to choose from:** Axolotl, Capybara, Cassowary, Dingo, Echidna, Narwhal, Okapi, Pangolin, Quokka, Tapir, Wombat
 
 ---
 
 ## Password Rules (Progressive)
 
-The password field is locked until Name and Email are both captured. Then it starts demanding things:
+The password field is **locked** until Name and Email are both captured. Once unlocked it flees aggressively. When you catch it, the rules are revealed one at a time as each is satisfied:
 
 | Step | Rule |
 |---|---|
-| 1 | At least 8 characters |
-| 2 | Contains an uppercase letter |
-| 3 | Digits in the password sum to 25 or more |
-| 4 | Contains an emoji |
-| 5 | Contains a prime number |
+| 1 | Must contain your spirit animal, backwards |
+| 2 | At least 8 characters |
+| 3 | Contains an uppercase letter |
+| 4 | Digits in your password must add up to 25 |
+
+**Example:** Secret = "Narwhal" → password must contain "lahwran" (case-insensitive)
+
+---
+
+## Scoring
+
+Runs are ranked by **time** (fastest first), then **deaths** (fewest first).
+
+| Event | Effect on score |
+|---|---|
+| Character typed | −1 second |
+| Failed validation | −5 seconds |
+| Death (wall/self) | +1 death counter |
+| Time expired | +1 death, full restart |
 
 ---
 
@@ -76,11 +110,11 @@ The Vite dev server proxies `/api` to `localhost:3001` automatically.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React (Vite), DOM-based rendering |
-| Styling | Tailwind CSS, shadcn/ui, pixel-art theme |
-| Game Engine | Vanilla JS class (`engine.js`), 40 ms tick |
-| State | React Context + useReducer |
-| Backend | Node.js + Express |
+| Frontend | React 19 (Vite 7), DOM-based rendering |
+| Styling | Tailwind CSS 4, shadcn/ui, custom pixel-art theme |
+| Game Engine | Vanilla JS class (`engine.js`), 30 ms initial tick |
+| State | React Context + hooks |
+| Backend | Node.js + Express 5 |
 | Database | SQLite via `better-sqlite3` |
 | Audio | Howler.js |
 
@@ -108,28 +142,29 @@ Email is SHA-256 hashed before storage. Raw email is never persisted.
 │   └── src/
 │       ├── game/               # Pure JS — no React, no hooks
 │       │   ├── engine.js       # GameEngine class (tick, collision, callbacks)
-│       │   ├── fields.js       # Field class + flee AI
+│       │   ├── fields.js       # Field class + flee AI + factory functions
 │       │   └── constants.js    # All magic numbers live here
 │       ├── components/
-│       │   ├── LandingPage.jsx
-│       │   ├── LoginPage.jsx        # Pre-game form with morph animation
-│       │   ├── GameBoard.jsx        # DOM-based snake + field renderer
-│       │   ├── FireBorder.jsx       # Animated fire trail around game edges
-│       │   ├── InputOverlay.jsx     # Pixel-art input modal on capture
-│       │   └── LeaderboardModal.jsx
+│       │   ├── LandingPage.jsx       # Marketing page (/)
+│       │   ├── LoginPage.jsx         # Pre-game form + inline post-game overlay (/signup)
+│       │   ├── GameBoard.jsx         # DOM-based snake + field renderer
+│       │   ├── FireBorder.jsx        # Animated fire trail + status bar
+│       │   ├── InputOverlay.jsx      # Pixel-art input modal on capture
+│       │   └── LeaderboardModal.jsx  # Leaderboard table (post-game + standalone)
 │       ├── hooks/
-│       │   ├── useSnakeGame.js      # Consolidated game state + handlers
-│       │   ├── useGameLoop.js
-│       │   ├── useKeyboard.js
-│       │   └── useTimer.js
+│       │   ├── useSnakeGame.js  # Consolidated game state + all handlers
+│       │   ├── useGameLoop.js   # Mounts GameEngine, exposes gameState
+│       │   ├── useKeyboard.js   # Arrow/WASD input → engine direction queue
+│       │   ├── useTimer.js      # 120s countdown, pauseable, penalize(ms)
+│       │   └── useAudio.js      # Howler.js lazy-init audio system
 │       └── context/
-│           └── GameContext.jsx
+│           └── GameContext.jsx  # Captured form values (name, email, password)
 └── server/
     ├── routes/
-    │   ├── submissions.js
-    │   └── leaderboard.js
-    ├── db.js
-    └── index.js
+    │   ├── submissions.js   # POST /api/submit, 2× PATCH endpoints
+    │   └── leaderboard.js   # GET /api/leaderboard (top 10)
+    ├── db.js                # SQLite connection + schema init
+    └── index.js             # Express server entry point
 ```
 
 ---
@@ -138,12 +173,14 @@ Email is SHA-256 hashed before storage. Raw email is never persisted.
 
 | Constant | Value | Description |
 |---|---|---|
-| `TICK_RATE_MS` | 40 ms | Initial snake speed |
-| `TICK_RATE_INCREASE_MS` | 10 ms | Speed gain per captured field |
-| `VERIFY_TICK_RATE_MS` | 20 ms | Tick rate during Verify Password phase |
-| `FLEE_RADIUS` | 15 cells | Distance at which fields start fleeing |
+| `TICK_RATE_MS` | 30 ms | Initial snake speed |
+| `TICK_RATE_INCREASE_MS` | 5 ms | Speed gain per captured field |
+| `VERIFY_TICK_RATE_MS` | 15 ms | Tick rate during Verify Password phase |
+| `LOCK_FLEE_RADIUS` | 15 cells | Distance at which locked Password field flees |
+| `LOCK_FLEE_SPEED` | 4 cells/tick | Speed of locked field fleeing |
 | `GRID_COLS × GRID_ROWS` | 100 × 75 | Logical grid dimensions |
 | `SCATTER_DELAY_MS` | 3000 ms | Scatter animation duration |
+| Timer | 120 s | Total time per run |
 
 ---
 
@@ -152,13 +189,16 @@ Email is SHA-256 hashed before storage. Raw email is never persisted.
 | Command | Description |
 |---|---|
 | `npm run dev` | Start client + server concurrently |
+| `npm run dev:client` | Client (Vite) only |
+| `npm run dev:server` | Server only |
 | `cd client && npm run build` | Build client for production |
 
 ---
 
-## Stretch Goals
+## Stretch Goals (RIP)
 
 - Mobile support (on-screen D-pad or swipe controls)
+- Update your submission with a new high score on replays
 - Difficulty tiers (flee radius / speed scaling per capture)
 - Multiplayer race via WebSockets
 - Animated snake skin or per-field easter eggs

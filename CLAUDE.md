@@ -15,14 +15,15 @@
 
 | Layer | Technology |
 |---|---|
-| Frontend Framework | React (Vite) |
-| Game Rendering | HTML5 Canvas |
-| State Management | React Context + useReducer |
-| Backend | Node.js + Express |
+| Frontend Framework | React 19 (Vite 7) |
+| Game Rendering | DOM-based (positioned divs) |
+| State Management | React Context + hooks |
+| Backend | Node.js + Express 5 |
 | Database | SQLite via `better-sqlite3` |
-| Styling | Tailwind CSS |
-| Audio | Howler.js |
-| Deployment | Railway or Render |
+| Styling | Tailwind CSS 4, shadcn/ui, custom pixel-art theme |
+| Audio | Howler.js 2.2.4 |
+| Routing | React Router 7 |
+| Icons | Lucide React |
 
 ---
 
@@ -32,38 +33,37 @@
 /
 ├── client/
 │   ├── src/
-│   │   ├── game/           # Pure game engine — snake loop, collision, field AI
-│   │   │   ├── engine.js   # GameEngine class
-│   │   │   ├── fields.js   # Field class + factory fns (createFormPositionFields, createVerifyField)
-│   │   │   ├── constants.js
-│   │   │   └── draw.js     # Legacy canvas renderer (kept for reference, not used)
-│   │   ├── components/     # React UI components
+│   │   ├── game/           # Pure JS — no React imports, no hooks
+│   │   │   ├── engine.js   # GameEngine class (tick, collision, field AI, tail chars)
+│   │   │   ├── fields.js   # Field class + flee AI + createFormPositionFields + createVerifyField
+│   │   │   └── constants.js
+│   │   ├── components/
 │   │   │   ├── LandingPage.jsx     # Marketing landing page (route: /)
-│   │   │   ├── LoginPage.jsx       # Pre-game glossy form (route: /signup)
-│   │   │   ├── GameBoard.jsx       # DOM-based game renderer
-│   │   │   ├── FireBorder.jsx      # Animated fire edge effect
+│   │   │   ├── LoginPage.jsx       # Pre-game form + game board + inline post-game overlay (route: /signup)
+│   │   │   ├── GameBoard.jsx       # DOM-based snake/field renderer + particle bursts
+│   │   │   ├── FireBorder.jsx      # Animated clockwise fire trail + top status bar
 │   │   │   ├── InputOverlay.jsx    # Pixel-art input modal on field capture
 │   │   │   ├── LeaderboardModal.jsx
 │   │   │   └── ui/                 # shadcn/ui components
 │   │   ├── context/
 │   │   │   └── GameContext.jsx     # Captured form values (name, email, password)
 │   │   ├── hooks/
-│   │   │   ├── useGameLoop.js      # Mounts engine, exposes gameState
-│   │   │   ├── useKeyboard.js      # Arrow/WASD input
-│   │   │   ├── useTimer.js         # 120s countdown + penalize(ms)
-│   │   │   └── useSnakeGame.js     # Consolidated game state hook
+│   │   │   ├── useGameLoop.js      # Mounts GameEngine, exposes gameState via React state
+│   │   │   ├── useKeyboard.js      # Arrow/WASD input → engine direction queue
+│   │   │   ├── useTimer.js         # 120s countdown + penalize(ms), pauseable
+│   │   │   ├── useAudio.js         # Howler.js lazy-init, 8 named sounds
+│   │   │   └── useSnakeGame.js     # Consolidated game hook (all state, all handlers)
 │   │   ├── styles/
-│   │   │   ├── theme.css           # AllocateMe pixel-art colour scheme
+│   │   │   ├── theme.css           # Pixel-art colour scheme + CSS animations
 │   │   │   └── tailwind.css
-│   │   └── assets/
-│   │       └── happy.gif
-│   └── vite.config.js      # Proxy: /api -> localhost:3001
+│   │   └── assets/                 # MP3 audio + images
+│   └── vite.config.js      # Proxy: /api → localhost:3001
 ├── server/
 │   ├── routes/
 │   │   ├── submissions.js  # POST /api/submit, PATCH /:id/name, PATCH /:id/frame-color
 │   │   └── leaderboard.js  # GET /api/leaderboard
-│   ├── db.js               # SQLite connection and schema init
-│   └── index.js
+│   ├── db.js               # SQLite connection + schema init (auto-migrates)
+│   └── index.js            # Express entry, CORS, Helmet
 └── CLAUDE.md
 ```
 
@@ -96,275 +96,202 @@
 
 ## Database Schema
 
+**File:** `server/data/snekup.db`
+
 Table: `submissions`
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | INTEGER PRIMARY KEY AUTOINCREMENT | |
-| `name` | TEXT NOT NULL | |
-| `email_hash` | TEXT NOT NULL | SHA-256 of raw email — never store plaintext |
+| `name` | TEXT NOT NULL | Display name (editable once) |
+| `email_hash` | TEXT NOT NULL | SHA-256 of `email.trim().toLowerCase()` — never store plaintext |
 | `time_ms` | INTEGER NOT NULL | Completion time in milliseconds |
 | `deaths` | INTEGER NOT NULL DEFAULT 0 | |
 | `frame_color` | TEXT DEFAULT NULL | Hex string e.g. `#ffd700` |
 | `frame_color_2` | TEXT DEFAULT NULL | Second hex for dual-gradient (top 3 only) |
-| `name_changed` | INTEGER DEFAULT 0 | Flag — prevents editing display name more than once |
+| `name_changed` | INTEGER DEFAULT 0 | Prevents editing display name more than once |
 | `created_at` | DATETIME DEFAULT CURRENT_TIMESTAMP | |
 
----
-
-## Key Design Decisions
-
-- **Game loop separation:** The canvas game engine runs outside React's render cycle (via `useEffect` + `setInterval`/`requestAnimationFrame`). React state is only updated on discrete events (field captured, game over, all fields collected) — not every tick.
-- **Flee AI:** On each tick, if the snake head is within `FLEE_RADIUS` (default: 8 cells) of a field, the field moves one cell along its dominant axis away from the snake. Position is clamped to keep fields catchable.
-- **Arrow key prevention:** `event.preventDefault()` on arrow keys when the game is active; re-enabled on blur.
-- **Audio trigger:** All sounds triggered on first user interaction (`keydown`), not on page load.
-- **Email privacy:** SHA-256 hash stored; raw email discarded immediately.
-- **Grid:** Logical coordinate system overlaid on full viewport. Max 40×30 cells. Fields occupy rectangular grid regions.
+**Rank calculation:** `SELECT COUNT(*) FROM submissions WHERE time_ms < ? OR (time_ms = ? AND deaths < ?)` + 1
 
 ---
 
-## Game Constants (Configurable)
+## Game Constants (Actual Values in `constants.js`)
 
 | Constant | Value | Description |
 |---|---|---|
-| `TICK_RATE_MS` | 40 | Milliseconds per snake tick (initial speed) |
-| `TICK_RATE_INCREASE_MS` | 10 | Speed increase per captured field (floored at 20 ms/tick) |
-| `VERIFY_TICK_RATE_MS` | 20 | Tick rate during Verify Password phase |
-| `FLEE_RADIUS` | 15 | Grid cells — locked field aggressive flee radius |
+| `TICK_RATE_MS` | 30 | Milliseconds per snake tick (initial speed) |
+| `TICK_RATE_INCREASE_MS` | 5 | Speed increase per captured field (ms faster) |
+| `VERIFY_TICK_RATE_MS` | 15 | Tick rate during Verify Password phase |
 | `GRID_COLS` | 100 | Logical grid width |
 | `GRID_ROWS` | 75 | Logical grid height |
-| `SCATTER_DELAY_MS` | 3000 | Scatter animation duration |
+| `SNAKE_START_COL` | 50 | Snake starting column |
+| `SNAKE_START_ROW` | 37 | Snake starting row |
+| `SNAKE_START_LENGTH` | 3 | Initial snake body segments |
+| `SCATTER_DELAY_MS` | 3000 | Scatter animation duration (ms) |
+| Timer | 120 s | Total time per run (in `useTimer.js`) |
+
+**Field constants (in `fields.js`):**
+
+| Constant | Value | Description |
+|---|---|---|
+| `FIELD_WIDTH` | 8 | Width of Name/Email/Password fields (grid cells) |
+| `FIELD_HEIGHT` | 5 | Height of Name/Email/Password fields |
+| `VERIFY_FIELD_WIDTH` | 12 | Width of Verify Password field |
+| `VERIFY_FIELD_HEIGHT` | 5 | Height of Verify Password field |
+| `FIELD_MARGIN` | 2 | Min cell margin from grid edges |
+| `LOCK_FLEE_RADIUS` | 15 | Distance at which locked Password field flees |
+| `LOCK_FLEE_SPEED` | 4 | Cells per tick locked field moves when fleeing |
 
 ---
 
 ## Build Stages & Progress
 
 ### Stage 1 — Project Scaffolding ✅
-**Goal:** Monorepo running locally; client and server communicating.
+- Monorepo root, Vite React client, Express server
+- Tailwind CSS, shadcn/ui, Howler.js, React Router DOM installed
+- `/api` proxy in `vite.config.js`
+- `/api/health` working
 
-- [x] Initialise monorepo root with `package.json` (workspaces or plain scripts)
-- [x] Scaffold client with `npm create vite@latest client -- --template react`
-- [x] Install client dependencies: `tailwindcss`, `howler`
-- [x] Configure Tailwind (`@tailwindcss/vite` plugin, `@import "tailwindcss"` in `index.css`)
-- [x] Scaffold server: `npm init` in `/server`, install `express`, `better-sqlite3`, `cors`, `helmet`
-- [x] Add `/api` proxy in `vite.config.js` pointing to `localhost:3001`
-- [x] Add `dev` scripts (concurrent client + server start via root `package.json`)
-- [x] Verify: client builds clean, server at `http://localhost:3001`, `/api/health` returns `{"status":"ok"}`
-
----
-
-### Stage 2 — Canvas Game Engine (Snake Only)
-**Goal:** A playable snake on canvas with wall and self-collision — no fields yet.
-
-- [x] Create `client/src/game/constants.js` — export all configurable constants
-- [x] Create `client/src/game/engine.js` — `GameEngine` class with:
-  - [x] `start()` / `stop()` / `pause()` / `resume()` / `reset()` methods
-  - [x] `tick()` advancing snake position each interval
-  - [x] Wall collision → trigger `onDeath` callback
-  - [x] Self-collision → trigger `onDeath` callback
-  - [x] Direction queue (prevent 180° reversal)
-- [x] Create `client/src/game/draw.js` — `draw(ctx, state, canvas)` with grid, snake, eye glints, death flash, field stub
-- [x] Create `client/src/game/useKeyboard.js` — arrow keys + WASD, `preventDefault`, feeds engine
-- [x] Create `client/src/game/useGameLoop.js` — mounts engine, ResizeObserver on canvas, rAF render loop
-- [x] Create `client/src/game/App.jsx` — `GamePage` (canvas + start screen + HUD), `LeaderboardPage` stub, React Router shell
-
-> **NOTE — teammates placed hooks and App.jsx inside `client/src/game/` instead of the planned `src/hooks/` and `src/` directories. Acceptable deviation — do not reorganise mid-project.**
-
-**3 bugs to fix before Stage 2 is shippable:**
-
-- [x] **BUG 1 — app entry not updated:** Fixed `client/src/main.jsx` to import `'./game/App.jsx'`.
-- [x] **BUG 2 — wrong hook import paths:** Fixed `App.jsx` imports to `'./useGameLoop.js'` and `'./useKeyboard.js'`.
-- [x] **BUG 3 — missing dependency:** Installed `react-router-dom` in `/client`.
-
-### Stage 2 ✅ — Verified: build produces 236 kB (was 193 kB) confirming all game modules are now bundled.
-
----
+### Stage 2 — Game Engine ✅
+- `GameEngine` class: `start()`, `stop()`, `resume()`, `_resetSnake()`
+- `tick()`: advances snake, checks wall/self collision, runs field flee AI
+- `onDeath`, `onFieldCaptured`, `onTick` callbacks
+- `useGameLoop.js`: mounts engine, exposes `gameState`, `startGame`, `stopGame`, `resumeGame`
+- `useKeyboard.js`: arrow/WASD input, prevents default on arrow keys when active
 
 ### Stage 3 — Fleeing Field Entities ✅
-**Goal:** Three field entities on the grid with functional flee AI.
-
-- [x] Create `client/src/game/fields.js` — `Field` class / factory with:
-  - [x] Grid position state
-  - [x] `label` property (`"Name"`, `"Email"`, `"Password"`)
-  - [x] `fleeStep(snakeHeadPos)` — moves one cell away from head if within `FLEE_RADIUS`; clamps to grid bounds with margin
-- [x] Integrate fields into `GameEngine` — initialise three `Field` instances with random start positions
-- [x] Call `field.fleeStep()` for each field each tick
-- [x] Draw fields on canvas as distinct rectangles with label text
-- [x] Verify: fields visibly flee when snake approaches, stay within bounds
-
----
+- `Field` class: label, grid position, `fleeStep()`, collision rect
+- Fields move away from snake head when within flee radius
+- DVD-bounce movement pattern when not fleeing
+- Field separation: overlapping fields nudge apart
 
 ### Stage 4 — Field Capture & Input Mode ✅
-**Goal:** Snake head collision with a field triggers capture; snake freezes; user can type.
-
-- [x] Add collision detection in `GameEngine.tick()` — compare snake head cell to each field's grid rect
-- [x] On collision: mark field as `captured`, grow snake by one segment, trigger `onFieldCaptured(field)` callback
-- [x] `onFieldCaptured` pauses the game loop (snake freezes, fields stop fleeing)
-- [x] Create `client/src/components/InputOverlay.jsx`:
-  - [x] Fixed HUD position (e.g. bottom-centre)
-  - [x] Shows prompt: `"Enter your {field.label}:"`
-  - [x] Controlled `<input>` element, auto-focused
-  - [x] `Enter` key confirms; runs per-field validation:
-    - Name: non-empty
-    - Email: basic regex (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`)
-    - Password: min 8 characters
-  - [x] On valid confirm: store value in game context, resume game loop
-  - [x] On invalid: show inline error, do not resume
-- [x] Tooltip: if user presses a letter key when no field is captured and game is active, show mocked tooltip
-- [x] Verify: capture flow end-to-end, validation errors, game resumes correctly
-
-**Additional features added during Stage 4:**
-- `client/src/context/GameContext.jsx` — React context storing captured form values (name, email, password)
-- `client/src/components/LoginPage.jsx` — entry screen; password field click triggers the game
-- `client/src/hooks/useTimer.js` — timer hook tracking elapsed ms, pauseable during input mode
-- Snake speeds up by `TICK_RATE_INCREASE_MS` per captured field (resets on death); keyboard events guarded against INPUT/TEXTAREA targets so typed characters don't leak into snake direction
-
----
+- Collision detection in `engine.tick()`
+- `InputOverlay.jsx`: pixel-art input modal, field-specific validation
+- Timer pauses during input overlay
+- `useGameContext`: stores confirmed field values
+- Per-character penalty: −1s + snake grows 1 segment with character label
 
 ### Stage 5 — Submit Flow & Backend Storage ✅
-**Goal:** All three fields captured → Submit button → POST to server → rank returned.
+- Verify Password capture triggers `POST /api/submit`
+- Server hashes email with SHA-256 (`crypto.createHash('sha256')`)
+- Rank calculated and returned with `{ rank, id }`
+- `submitError` graceful degradation if server unavailable
 
-- [x] After third field confirmed, auto-submit via "Verify Password" capture flow
-- [x] On submit: collect `{ name, email, timeMs, deaths }`, POST to `POST /api/submit`
-- [x] **Server — `server/db.js`:**
-  - [x] Open SQLite database (`./data/snakeup.db`)
-  - [x] `CREATE TABLE IF NOT EXISTS submissions (...)` on startup
-- [x] **Server — `server/routes/submissions.js`:**
-  - [x] Validate all fields (400 on failure)
-  - [x] SHA-256 hash the email before storage (`crypto.createHash('sha256')`)
-  - [x] Insert row into `submissions`
-  - [x] Query rank: count rows with `time_ms < submitted`, or `time_ms = submitted AND deaths < submitted`
-  - [x] Return `{ rank, id }` with status `201`
-- [x] Client: on `201`, store rank in context, navigate to completion screen
-- [x] Client: on error, show friendly message ("Couldn't save your score") and preserve form values client-side
-- [x] Verify: submission inserts to DB, rank is accurate
+### Stage 6 — Leaderboard ✅
+- `GET /api/leaderboard` returns top 10 ranked by `time_ms ASC, deaths ASC`
+- `LeaderboardModal.jsx`: ranked table, current user highlight, rank shown even if outside top 10
+- `/leaderboard` standalone route
 
-**Implementation notes:**
-- After Name/Email/Password captured, engine spawns a "Verify Password" field at higher speed
-- Capturing Verify Password triggers the POST — no separate Submit button needed
-- `submitError` flag passed to SuccessPage for graceful degradation when server unavailable
-
----
-
-### Stage 6 — Leaderboard Endpoint & Modal ✅
-**Goal:** Top-10 leaderboard accessible on completion screen and at `/leaderboard` route.
-
-- [x] **Server — `server/routes/leaderboard.js`:**
-  - [x] `GET /api/leaderboard` returns top 10 rows ordered `time_ms ASC, deaths ASC`
-  - [x] Add `rank` field to each row in response
-- [x] **Client — `client/src/components/LeaderboardModal.jsx`:**
-  - [x] `GET /api/leaderboard` on mount
-  - [x] Render ranked table: `rank | name | time | deaths`
-  - [x] Highlight the current user's row (matched by `id` from submit response)
-  - [x] Show user's own rank even if not in top 10 (append below table with separator)
-- [x] **Client — `/leaderboard` route:**
-  - [x] Standalone page rendering `<LeaderboardModal>` without playing the game
-  - [x] React Router `/leaderboard` route
-- [x] Verify: leaderboard populates correctly, current user highlighted, `/leaderboard` route works standalone
-
----
-
-### Architectural Refactor ✅ (between Stage 6 & 7)
-**Goal:** Replace canvas rendering with DOM-based rendering and AllocateMe/Figma design system.
-
-- [x] Replaced HTML5 Canvas game rendering with DOM-based `GameBoard.jsx` (snake/fields as positioned divs)
-- [x] Removed `game/draw.js` canvas renderer (replaced by `GameBoard.jsx`); `draw.js` re-added later for field styling
-- [x] Modified `engine.js`: added `onTick` callback, removed canvas params from `tick()` and `start()`
-- [x] Rewrote `useGameLoop.js`: removed canvasRef, exposes `gameState` via React state, passes onTick to engine
-- [x] Created `client/src/hooks/useSnakeGame.js` — consolidates all game state & handlers from LoginPage + App:
-  - deaths, started, capturedField, showTooltip, showFailed, timerResetKey
-  - handleDeath, handleFieldCaptured, handleInputConfirm, handleTimeUp + full submit flow
-- [x] Added shadcn/ui design system components: `badge`, `button`, `card`, `input`, `label`, `avatar`, `progress`, `tabs`
-- [x] Added `client/src/styles/theme.css` — AllocateMe colour scheme
-- [x] LoginPage: gradient background with animated blobs, glassmorphic Card, lucide-react icons
-- [x] App.jsx: Card-based start screen, Badge HUD, SuccessPage with gradient + badge stats
-- [x] InputOverlay: restyled with Card, Input, Label, Button; validation logic unchanged
-- [x] Fixed server startup issues (`server/index.js`)
-- [x] Added `client/src/assets/happy.gif`
-- [x] Screen flashes red on death (implemented in `LoginPage.jsx` + `useSnakeGame.js`)
-- [x] Background blobs maintained in-game (not just on login screen)
-
-> **NOTE — Hooks previously in `client/src/game/` moved to `client/src/hooks/` during this refactor (`useGameLoop.js`, `useKeyboard.js`, `useTimer.js`, `useSnakeGame.js`). App entry is now `client/src/App.jsx` (not `src/game/App.jsx`).**
-
----
+### Architectural Refactor ✅
+- Canvas rendering → DOM-based `GameBoard.jsx` (positioned divs)
+- `useSnakeGame.js` created: consolidates all game state and handlers
+- AllocateMe pixel-art theme applied
+- shadcn/ui components throughout
 
 ### Stage 7 — HUD & Completion Screen ✅
-**Goal:** Persistent on-screen HUD; polished completion screen.
+- Timer HUD: 120s countdown, pauses during input, penalty flash
+- Death counter HUD
+- 3-2-1 countdown overlay after death
+- Time's up overlay; +1 death, restart
+- Red screen flash on death (100ms)
+- Penalty flash: red HUD 200–400ms with "−Xs" label
+- `LandingPage.jsx` marketing page at `/`
+- `FireBorder.jsx`: animated clockwise fire trail, top-edge status bar
+- Pre-game form: decaying progress bar, auto-advance, card shake, glitch flash
+- Progressive password rules (see below)
+- Password field locked until Name+Email captured
+- Scatter + spiral animation (ease-in quintic, 2s)
+- `resetForReplay()` — full in-place reset; no navigation on Play Again
+- Post-game leaderboard overlay inline in `LoginPage.jsx`
+- One-time name edit + frame colour picker (7 colours)
+- Dual-gradient animated border for top 3; rainbow name animation
 
-- [x] Timer — 120s countdown displayed in HUD, paused during input mode; penalised on bad input
-- [x] Death counter displayed in HUD
-- [x] Completion screen: personal time + death count + rank + leaderboard below
-- [x] "Play Again" button resets all state
-- [x] Death handling: snake resets to centre, uncaptured fields scatter, death counter increments, timer continues
-- [x] Initial animation: fields start in form positions, then spiral/scatter to game positions (3s easing)
-- [x] 3-2-1 countdown overlay before game restarts after death
-- [x] Time's up: full-screen overlay, 1.5s delay, then restart (death counted)
-- [x] Red screen flash on death (100ms)
-- [x] Penalty flash on timer deduction (red HUD for 200-400ms) with "-Xs" label
+### Stage 8 — Audio ✅
+- Howler.js lazy-initialized on first keydown
+- 8 sound effects wired:
 
-**Additional features added during Stage 7 (beyond original spec):**
-- `LandingPage.jsx` — marketing landing page at `/`, routes to `/signup`
-- App routes: `/` → LandingPage, `/signup` → LoginPage, `/game` → GamePage, `/leaderboard` → LeaderboardPage
-- `FireBorder.jsx` — animated clockwise fire trail around game board edges (spawned on game start)
-- Pre-game form (LoginPage): card shakes on typing (intensity scales with completed fields), glitch flash effect (pixel-art overlay), only one field editable at a time
-- Morph animation: form inputs cross-fade into game fields (1.8s CSS transition), followed by spiral scatter
-- **Progressive password rules** (5 levels): ≥8 chars → uppercase → digit sum ≥25 → emoji → prime number
-- Password field locked until Name+Email captured; flees aggressively (4 cells/tick) when locked + near
-- Char-typed penalty: each character typed in input costs -1s and grows snake by 1 segment
-- Failed validation penalty: -5s
-- Leaderboard post-game: one-time display name edit; frame colour picker (single or dual-gradient for top 3)
-- Top-3 leaderboard rows: rainbow name animation + dual-colour JS-animated gradient border
-- `PATCH /api/submit/:id/name` and `PATCH /api/submit/:id/frame-color` endpoints added to server
+| Key | File | Trigger |
+|---|---|---|
+| `capture` | `food.mp3` | Field captured |
+| `scatter` | `move.mp3` | Fields scatter |
+| `death` | `geometry-dash-death-sound-effect.mp3` | Snake dies |
+| `fieldSwitch` | `fahhhhh.mp3` | Pre-game field advances |
+| `countdown` | `countdown.mp3` | 3-2-1 countdown |
+| `step` | `zelda-blip.mp3` | Each game tick |
+| `validationFail` | `deconstruct-bricks.mp3` | Input validation fails |
+| `gameover` | `gameover.mp3` | Time expires |
+
+### Stage 9 — Deployment ✅
+- Deployed (Railway or Render)
+- `VITE_API_URL` env var for production API routing
+- Server serves `/client/dist` as static files in production
+- `PORT` and `CLIENT_URL` env vars for server config
 
 ---
 
-### Stage 8 — Audio & Visual Polish
-**Goal:** Sound effects and particle effects completing the game feel.
+## Pre-Game Form Details
 
-- [ ] Trigger all sounds on first `keydown` (satisfies autoplay policy) — `howler` installed but not integrated
-- [ ] Sound effects:
-  - [ ] Fields scatter (`boing` / `whoosh`) — on initial scatter and on death-reset scatter
-  - [ ] Field captured (satisfying `pop` or `chomp`)
-- [ ] Particle burst on field capture
-- [ ] Verify: audio plays correctly, no autoplay errors in console
+**Fields (in order):** Name → Email → Verify Email → Secret (spirit animal)
+
+**Progress bar mechanics:**
+- Fills +20 per keystroke; decays −1 per 100ms when idle
+- Reaches 100% → field locks in, glitch flash (120ms), advance to next field
+- Card shake intensity 1–3 scales with number of completed fields (150ms duration)
+
+**Spirit animals:** Axolotl, Capybara, Cassowary, Dingo, Echidna, Narwhal, Okapi, Pangolin, Quokka, Tapir, Wombat
 
 ---
 
-### Stage 9 — Deployment
-**Goal:** Publicly accessible URL for demo; both client and server live.
+## Password Rules (Progressive)
 
-- [ ] Choose deployment target: Railway or Render
-- [ ] Configure build scripts:
-  - [ ] `client`: `vite build` → `/client/dist`
-  - [ ] `server`: serve `/client/dist` as static files in production (`express.static`)
-- [ ] Set environment variables for production (port, any secrets)
-- [ ] Push to GitHub; connect repo to Railway/Render
-- [ ] Confirm `/api/submit`, `/api/leaderboard`, and `/leaderboard` route all work on production URL
-- [ ] Test on a non-dev machine (performance check, audio check)
-- [ ] Share public URL with team
+Rules revealed one at a time. Applied in this order if `loginSecret` is set:
+
+1. Must contain your spirit animal, backwards (case-insensitive)
+2. At least 8 characters
+3. Contains an uppercase letter
+4. Digits in the password sum to ≥ 25
+
+If no spirit animal selected, rule 1 is skipped (3 rules total).
+
+**Verify Password:** Must exactly match the first password entry.
+
+---
+
+## Key Design Decisions
+
+- **Game loop separation:** `GameEngine` runs outside React (interval-based). React state only updated on discrete events (field captured, death, game over) — not every tick.
+- **Flee AI:** DVD-bounce movement; within `LOCK_FLEE_RADIUS` the locked Password field moves 4 cells/tick toward snake.
+- **Tail characters:** Typed characters become snake tail segments with visible char labels. Tail wraps clockwise along inner border (1 cell inward) if it goes off-map.
+- **Arrow key prevention:** `event.preventDefault()` on arrow keys when game active; ignores INPUT/TEXTAREA targets so typed chars don't become directions.
+- **Audio trigger:** Lazy Howler.js init on first `keydown` satisfies browser autoplay policy.
+- **Email privacy:** SHA-256 hash stored; raw email discarded immediately after hashing.
+- **Single route for game:** `/signup` handles pre-game form, game board, and post-game overlay. `resetForReplay()` resets everything in-place — no navigation needed.
+- **loginValuesRef:** Pre-game form values (name, email, secret) are passed to `beginGame()` and stored in a ref. InputOverlay uses these for in-game validation (Name/Email must match; password must embed the reversed animal name).
+
+---
+
+## Coding Conventions
+
+- Game engine code (`/client/src/game/`) must be **pure JS** — no React imports, no hooks, no JSX.
+- React state updates from the game engine must go through **callbacks passed at mount time** — never direct state setters inside the engine.
+- All grid positions are `{ col, row }` objects. Pixel conversion happens only in renderer.
+- Constants are defined once in `constants.js` and imported everywhere — no magic numbers in engine code.
+- `useSnakeGame.js` is the single source of truth for game UI state. Components receive state and callbacks as props from this hook.
 
 ---
 
 ## Stretch Goals (Post-MVP)
 
 - [ ] Mobile support: on-screen D-pad or swipe controls
-- [ ] Difficulty tiers: flee radius increases or snake speed increases after each capture
+- [ ] Difficulty tiers: flee radius / speed scaling per capture
 - [ ] Multiplayer: two players race using WebSockets
-- [ ] Animated snake skin or per-field easter eggs (password field harder to catch)
+- [ ] Animated snake skin or per-field easter eggs
 - [ ] CAPTCHA parody: second form appears post-completion with faster fields
 
 ---
 
-## Risk Register
+## Known Bugs
 
----
-
-## Coding Conventions
-
-- Game engine code (`/client/src/game/`) must be **pure JS** — no React imports, no hooks, no JSX. This keeps the game loop fast and testable.
-- React state updates from the game engine must go through **callbacks passed at mount time** — never direct state setters inside the engine.
-- All grid positions are `{ col, row }` objects. Pixel conversion happens only in `draw.js`.
-- Constants are defined once in `constants.js` and imported everywhere — no magic numbers in engine code.
-- Commit after each stage is verified working.
-
-
+- Snake can occasionally die immediately after reset-to-center post-death (wall collision on first tick after resume)
