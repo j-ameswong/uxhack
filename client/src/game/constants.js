@@ -7,10 +7,10 @@ export const GRID_COLS       = 100      // logical grid width
 export const GRID_ROWS       = 75      // logical grid height
 
 export const TICK_RATE_MS    = 30     // ms per snake tick (initial)
-export const TICK_RATE_INCREASE_MS = 10 // ms faster per captured field
+export const TICK_RATE_INCREASE_MS = 5 // ms faster per captured field
 
 // Verify-password phase — fixed speed, faster than normal
-export const VERIFY_TICK_RATE_MS = 10
+export const VERIFY_TICK_RATE_MS = 15
 export const SCATTER_DELAY_MS = 3000  // ms total shuffle duration before game starts
 
 // Visual

@@ -7,11 +7,11 @@
 import { GRID_COLS, GRID_ROWS } from './constants.js'
 
 /** Margin from grid edges — fields stay within this to remain catchable */
-const FIELD_MARGIN = 2
+export const FIELD_MARGIN = 2
 
 /** Default field size in grid cells (cols × rows) */
-const FIELD_WIDTH = 8
-const FIELD_HEIGHT = 5
+export const FIELD_WIDTH = 8
+export const FIELD_HEIGHT = 5
 
 /** Verify Password field is wider to fit the longer label */
 const VERIFY_FIELD_WIDTH = 12

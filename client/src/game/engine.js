@@ -1,4 +1,28 @@
 import { GRID_COLS, GRID_ROWS, TICK_RATE_MS, TICK_RATE_INCREASE_MS } from './constants.js';
+
+// ---------------------------------------------------------------------------
+// Inner perimeter — one cell inside the fire border, clockwise order.
+// Used so growTail() can wrap char segments around the border instead of
+// placing them off-map.
+//   Top:    row=1,            col 1 → GRID_COLS-2
+//   Right:  col=GRID_COLS-2,  row 2 → GRID_ROWS-2
+//   Bottom: row=GRID_ROWS-2,  col GRID_COLS-3 → 1
+//   Left:   col=1,            row GRID_ROWS-3 → 2
+// ---------------------------------------------------------------------------
+const INNER_PERIMETER = (() => {
+  const cells = [];
+  const maxC = GRID_COLS - 2, maxR = GRID_ROWS - 2;
+  for (let c = 1;      c <= maxC; c++) cells.push({ col: c,    row: 1    }); // top
+  for (let r = 2;      r <= maxR; r++) cells.push({ col: maxC, row: r    }); // right
+  for (let c = maxC-1; c >= 1;   c--) cells.push({ col: c,    row: maxR }); // bottom
+  for (let r = maxR-1; r >= 2;   r--) cells.push({ col: 1,    row: r    }); // left
+  return cells;
+})();
+
+// O(1) lookup: "col,row" → index in INNER_PERIMETER
+const INNER_PERIM_IDX = new Map(
+  INNER_PERIMETER.map((p, i) => [`${p.col},${p.row}`, i])
+);
 import { createInitialFields, createFormPositionFields, scatterFieldsToRandom, createVerifyField } from './fields.js';
 
 const DIRECTIONS = {
@@ -49,16 +73,30 @@ export class GameEngine {
     this.fields = createInitialFields();
   }
 
-  /** Reset snake position only — fields and captured state are preserved.
-   *  Used on death so the player doesn't lose progress on already-captured fields. */
+  /** Reset snake position only — fields, captured state, and typed-char tail
+   *  segments are preserved.  Used on death; full wipe happens in _resetSnake(). */
   _resetSnakeOnly() {
     const centreCol = Math.floor(GRID_COLS / 2);
     const centreRow = Math.floor(GRID_ROWS / 2);
-    this.snake = [
-      { col: centreCol - 2, row: centreRow },
-      { col: centreCol - 1, row: centreRow },
-      { col: centreCol, row: centreRow },
-    ];
+
+    // Rescue char segments from the old snake so the penalty tail survives death.
+    const charSegs = this.snake.filter(s => s.char);
+    const L = Math.max(3, this.snake.length);
+
+    // Rebuild a horizontal snake of the same length at center:
+    //   index 0 (tail) … charCount-1 : preserved char segments
+    //   charCount … L-1              : plain body segments + head
+    const newSnake = [];
+    for (let i = 0; i < L; i++) {
+      const col = centreCol - L + 1 + i;
+      newSnake.push(
+        i < charSegs.length
+          ? { col, row: centreRow, char: charSegs[i].char }
+          : { col, row: centreRow }
+      );
+    }
+
+    this.snake = newSnake;
     this.direction = 'right';
     this.nextDirection = null;
     this.pendingGrowth = 0;
@@ -202,17 +240,37 @@ export class GameEngine {
     this.fields.push(createVerifyField())
   }
 
-  /** Add a labelled segment at the tail and mark it as permanent growth. */
+  /** Add a labelled segment at the tail and mark it as permanent growth.
+   *  If the extrapolated position would leave the playable area, the segment
+   *  wraps clockwise along the inner border instead of going off-map. */
   growTail(char) {
     const tail = this.snake[0];
-    let newSeg;
+    let newCol, newRow;
     if (this.snake.length >= 2) {
       const next = this.snake[1];
-      newSeg = { col: tail.col - (next.col - tail.col), row: tail.row - (next.row - tail.row), char };
+      newCol = tail.col * 2 - next.col;
+      newRow = tail.row * 2 - next.row;
     } else {
-      newSeg = { col: tail.col - 1, row: tail.row, char };
+      newCol = tail.col - 1;
+      newRow = tail.row;
     }
-    this.snake.unshift(newSeg);
+
+    // If the computed position is outside the playable area, wrap clockwise
+    // along the inner border (one cell inside the fire border).
+    if (newCol < 1 || newCol > GRID_COLS - 2 || newRow < 1 || newRow > GRID_ROWS - 2) {
+      const idx = INNER_PERIM_IDX.get(`${tail.col},${tail.row}`);
+      if (idx !== undefined) {
+        const next = INNER_PERIMETER[(idx + 1) % INNER_PERIMETER.length];
+        newCol = next.col;
+        newRow = next.row;
+      } else {
+        // Fallback: clamp (shouldn't normally be reached)
+        newCol = Math.max(1, Math.min(GRID_COLS - 2, newCol));
+        newRow = Math.max(1, Math.min(GRID_ROWS - 2, newRow));
+      }
+    }
+
+    this.snake.unshift({ col: newCol, row: newRow, char });
     this.pendingGrowth += 1;
     this.onTick({ snake: [...this.snake], fields: this.fields, gameOver: false });
   }

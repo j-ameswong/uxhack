@@ -11,7 +11,7 @@ import { useTimer } from './useTimer.js'
 import { useAudio } from './useAudio.js'
 import { useGameContext } from '../context/GameContext.jsx'
 import { TICK_RATE_MS, VERIFY_TICK_RATE_MS, GRID_COLS, GRID_ROWS } from '../game/constants.js'
-import { generateSpacedPositions } from '../game/fields.js'
+import { generateSpacedPositions, createFormPositionFields } from '../game/fields.js'
 
 /**
  * @param {{ onComplete?: (result: { rank, deaths, timeMs }) => void }} options
@@ -90,6 +90,10 @@ export function useSnakeGame({ onComplete } = {}) {
     onTick: () => playAudio('step'),
   })
 
+  // Stable ref so handleTimeUp can call runScatterAndCountdown regardless of
+  // declaration order (useCallback values aren't hoisted).
+  const runScatterRef = useRef(null)
+
   const handleTimeUp = useCallback(() => {
     setCapturedField(null)
     setShowFailed(true)
@@ -99,9 +103,23 @@ export function useSnakeGame({ onComplete } = {}) {
     setTimeout(() => {
       setShowFailed(false)
       setTimerResetKey(k => k + 1)
-      resetGame()
+
+      // Full engine reset (snake + fields back to form positions)
+      const engine = engineRef.current
+      if (!engine) return
+      engine.stop()
+      engine._resetSnake()
+      engine.fields = createFormPositionFields()
+      engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
+
+      // Reset all animation / game state, then replay the scatter + countdown
+      setStarted(false)
+      setDeathCountdown(null)
+      setTickRate(TICK_RATE_MS)
+      setScattering(true)
+      runScatterRef.current?.()
     }, 1500)
-  }, [engineRef, resetGame])
+  }, [engineRef]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer pauses during field capture overlay AND during post-input countdown
   const { display: timerDisplay, elapsedMs, penalize } = useTimer(
@@ -221,13 +239,82 @@ export function useSnakeGame({ onComplete } = {}) {
   const SPIRAL_ROTATIONS = 2
   const SPIRAL_AMPLITUDE = 0.35
 
+  // Shared: run the spiral scatter animation then the 3-2-1 countdown.
+  // Caller is responsible for setting scattering=true before calling.
+  const runScatterAndCountdown = useCallback(() => { // eslint-disable-line react-hooks/exhaustive-deps
+    const engine = engineRef.current
+    if (!engine) return
+
+    playAudio('scatter')
+
+    const starts = engine.fields.map(f => ({ col: f.col, row: f.row }))
+    const targets = generateSpacedPositions(engine.fields)
+    const startTime = performance.now()
+
+    function animateSpiral(now) {
+      const elapsed = now - startTime
+      const rawT = Math.min(elapsed / SPIRAL_DURATION_MS, 1)
+      const t = rawT * rawT * rawT * rawT * rawT // ease-in quintic
+
+      for (let i = 0; i < engine.fields.length; i++) {
+        const field = engine.fields[i]
+        if (field.captured) continue
+
+        const s = starts[i]
+        const e = targets[i]
+        const dx = e.col - s.col
+        const dy = e.row - s.row
+        const dist = Math.sqrt(dx * dx + dy * dy)
+
+        const baseCol = s.col + t * dx
+        const baseRow = s.row + t * dy
+
+        const amplitude = Math.max(6, dist * SPIRAL_AMPLITUDE)
+        const envelope = Math.sin(rawT * Math.PI)
+        const angle = rawT * SPIRAL_ROTATIONS * 2 * Math.PI
+
+        const newCol = baseCol + amplitude * envelope * Math.cos(angle)
+        const newRow = baseRow + amplitude * envelope * Math.sin(angle)
+
+        field.col = Math.max(0, Math.min(GRID_COLS - field.width, newCol))
+        field.row = Math.max(0, Math.min(GRID_ROWS - field.height, newRow))
+      }
+
+      engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
+
+      if (rawT < 1) {
+        requestAnimationFrame(animateSpiral)
+      } else {
+        // Snap to final integer positions
+        for (let i = 0; i < engine.fields.length; i++) {
+          engine.fields[i].col = Math.round(targets[i].col)
+          engine.fields[i].row = Math.round(targets[i].row)
+        }
+        engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
+
+        // 3-2-1 countdown then start
+        setScattering(false)
+        setStarted(true)
+        playAudio('countdown'); setDeathCountdown(3)
+        setTimeout(() => { playAudio('countdown'); setDeathCountdown(2) }, 1000)
+        setTimeout(() => { playAudio('countdown'); setDeathCountdown(1) }, 2000)
+        setTimeout(() => {
+          setDeathCountdown(null)
+          startGame()
+        }, 3000)
+      }
+    }
+
+    requestAnimationFrame(animateSpiral)
+  }, [engineRef, startGame, playAudio]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Keep the ref current so handleTimeUp (declared earlier) can call this.
+  runScatterRef.current = runScatterAndCountdown
+
   const beginGame = useCallback((loginValues = {}) => {
     loginValuesRef.current = { name: '', email: '', secret: '', ...loginValues }
     setTickRate(TICK_RATE_MS)
 
-    // Phase 1: fields fade in immediately at their current (form) positions.
-    // cardFading shows the dark background; fieldsFadingIn hides the login form
-    // div so it can't flash back during the pixel-overlay cross-fade.
+    // Phase 1: fields fade in at their current (form) positions.
     setCardFading(true)
     setFieldsFadingIn(true)
 
@@ -236,73 +323,9 @@ export function useSnakeGame({ onComplete } = {}) {
       setCardFading(false)
       setFieldsFadingIn(false)
       setScattering(true)
-
-      const engine = engineRef.current
-      if (!engine) return
-
-      playAudio('scatter')
-
-      const starts = engine.fields.map(f => ({ col: f.col, row: f.row }))
-      const targets = generateSpacedPositions(engine.fields)
-      const startTime = performance.now()
-
-      function animateSpiral(now) {
-        const elapsed = now - startTime
-        const rawT = Math.min(elapsed / SPIRAL_DURATION_MS, 1)
-        const t = rawT * rawT * rawT * rawT * rawT // ease-in quintic
-
-        for (let i = 0; i < engine.fields.length; i++) {
-          const field = engine.fields[i]
-          if (field.captured) continue
-
-          const s = starts[i]
-          const e = targets[i]
-          const dx = e.col - s.col
-          const dy = e.row - s.row
-          const dist = Math.sqrt(dx * dx + dy * dy)
-
-          const baseCol = s.col + t * dx
-          const baseRow = s.row + t * dy
-
-          const amplitude = Math.max(6, dist * SPIRAL_AMPLITUDE)
-          const envelope = Math.sin(rawT * Math.PI)
-          const angle = rawT * SPIRAL_ROTATIONS * 2 * Math.PI
-
-          const newCol = baseCol + amplitude * envelope * Math.cos(angle)
-          const newRow = baseRow + amplitude * envelope * Math.sin(angle)
-
-          field.col = Math.max(0, Math.min(GRID_COLS - field.width, newCol))
-          field.row = Math.max(0, Math.min(GRID_ROWS - field.height, newRow))
-        }
-
-        engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
-
-        if (rawT < 1) {
-          requestAnimationFrame(animateSpiral)
-        } else {
-          // Snap to final integer positions
-          for (let i = 0; i < engine.fields.length; i++) {
-            engine.fields[i].col = Math.round(targets[i].col)
-            engine.fields[i].row = Math.round(targets[i].row)
-          }
-          engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
-
-          // Phase 3: 3-2-1 countdown then start
-          setScattering(false)
-          setStarted(true)
-          playAudio('countdown'); setDeathCountdown(3)
-          setTimeout(() => { playAudio('countdown'); setDeathCountdown(2) }, 1000)
-          setTimeout(() => { playAudio('countdown'); setDeathCountdown(1) }, 2000)
-          setTimeout(() => {
-            setDeathCountdown(null)
-            startGame()
-          }, 3000)
-        }
-      }
-
-      requestAnimationFrame(animateSpiral)
+      runScatterAndCountdown()
     }, FIELD_FADE_IN_MS)
-  }, [startGame, engineRef, playAudio])
+  }, [runScatterAndCountdown, engineRef, playAudio]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     engineRef,

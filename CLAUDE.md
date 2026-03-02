@@ -367,11 +367,4 @@ Table: `submissions`
 - Constants are defined once in `constants.js` and imported everywhere — no magic numbers in engine code.
 - Commit after each stage is verified working.
 
-## TODO / Open Issues
-
-### Nice to Haves
-- ~~Rework signup form~~ ✅ Done — password replaced with Verify Email; sequential field progression (name→email→verifyEmail); decaying progress bar fills on keypresses and advances fields on full; loops back to name from last field; hints shown after first loop; submit locked until all valid
-- **TODO: Rework engine field labels** — all mentions of "Password" / "Verify Password" in `fields.js`, `engine.js`, `InputOverlay.jsx`, and the pixel-art glitch overlay in `LoginPage.jsx` should be updated to "Email" / "Verify Email". The progressive password rules gimmick (5 levels) should be moved to the email game field instead.
-- Fix countdown before game start
-- Match what the user typed earlier in the login form
 

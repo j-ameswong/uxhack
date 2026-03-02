@@ -19,11 +19,8 @@ import { Input } from "./ui/input.jsx";
 import { Label } from "./ui/label.jsx";
 import { Button } from "./ui/button.jsx";
 import { Mail, User, LogIn, PawPrint } from "lucide-react";
-
-// TODO: Rework all mentions of "password" in engine field labels (fields.js, engine.js,
-// InputOverlay) from "Password"/"Verify Password" to "Email"/"Verify Email".
-// The progressive password rules gimmick should be moved to the email game field instead.
-// TODO: Wire the "secret" animal selection into the game engine rework.
+import { GRID_COLS, GRID_ROWS } from "../game/constants.js";
+import { FIELD_WIDTH, FIELD_HEIGHT, FIELD_MARGIN } from "../game/fields.js";
 
 const FIELD_ORDER = ["name", "email", "verifyEmail", "secret"];
 const BAR_FILL_PER_INPUT = 20;   // progress points added per keypress
@@ -182,6 +179,26 @@ export function LoginPage() {
   function handleSubmit() {
     if (!canSubmit || started || pixelReveal) return;
 
+    // Snap engine fields to the exact pixel positions of the form inputs so they
+    // emerge from behind the form layout rather than from approximate grid positions.
+    const engine = engineRef.current;
+    if (engine) {
+      const cellW = window.innerWidth / GRID_COLS;
+      const cellH = window.innerHeight / GRID_ROWS;
+      // name → Name field, email → Email field, verifyEmail → Password field
+      ['name', 'email', 'verifyEmail'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        const field = engine.fields[i];
+        if (!el || !field) return;
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        field.col = Math.max(FIELD_MARGIN, Math.min(GRID_COLS - FIELD_WIDTH  - FIELD_MARGIN, Math.round(cx / cellW - FIELD_WIDTH  / 2)));
+        field.row = Math.max(FIELD_MARGIN, Math.min(GRID_ROWS - FIELD_HEIGHT - FIELD_MARGIN, Math.round(cy / cellH - FIELD_HEIGHT / 2)));
+      });
+      engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false });
+    }
+
     // Show the pixel-art version for 2s, then start the game sequence simultaneously
     // with the overlay fade-out so there is no gap where the login form reappears.
     setPixelReveal(true);
@@ -293,8 +310,8 @@ export function LoginPage() {
         </div>
       )}
 
-      {/* ── GameBoard: fields fade in then scatter ── */}
-      {(fieldsFadingIn || scattering) && !started && (
+      {/* ── GameBoard: fields at form positions → fade in → scatter ── */}
+      {(cardFading || fieldsFadingIn || scattering) && !started && (
         <GameBoard
           gameState={gameState}
           showSnake={false}
@@ -307,14 +324,16 @@ export function LoginPage() {
       )}
 
       {/* ── Pre-game: Corporate glassmorphic login form ── */}
-      {!started && !scattering && !pixelReveal && !fieldsFadingIn && (
+      {!started && !scattering && !pixelReveal && (
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center z-10 p-4 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100",
-            cardFading ? "pointer-events-none" : ""
+            cardFading || fieldsFadingIn ? "pointer-events-none" : ""
           )}
           style={{
             fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+            transition: 'opacity 500ms ease-out',
+            opacity: cardFading || fieldsFadingIn ? 0 : 1,
           }}
         >
           {/* Animated background blobs */}
