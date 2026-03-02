@@ -17,14 +17,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Input } from "./ui/input.jsx";
 import { Label } from "./ui/label.jsx";
 import { Button } from "./ui/button.jsx";
-import { Mail, User, LogIn } from "lucide-react";
+import { Mail, User, LogIn, PawPrint } from "lucide-react";
 import { GRID_COLS, GRID_ROWS } from "../game/constants.js";
 
 // TODO: Rework all mentions of "password" in engine field labels (fields.js, engine.js,
 // draw.js, InputOverlay) from "Password"/"Verify Password" to "Email"/"Verify Email".
 // The progressive password rules gimmick should be moved to the email game field instead.
+// TODO: Wire the "secret" animal selection into the game engine rework.
 
-const FIELD_ORDER = ["name", "email", "verifyEmail"];
+const FIELD_ORDER = ["name", "email", "verifyEmail", "secret"];
+
+const ANIMALS = [
+  "Axolotl", "Capybara", "Cassowary", "Dingo", "Echidna",
+  "Fennec Fox", "Honey Badger", "Komodo Dragon", "Mantis Shrimp",
+  "Narwhal", "Okapi", "Pangolin", "Quokka", "Tapir", "Wombat",
+];
 const BAR_FILL_PER_INPUT = 20;   // progress points added per keypress
 const BAR_DECAY_INTERVAL_MS = 100;
 const BAR_DECAY_AMOUNT = 1;       // points drained per interval tick
@@ -35,6 +42,7 @@ export function LoginPage() {
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formVerifyEmail, setFormVerifyEmail] = useState("");
+  const [formSecret, setFormSecret] = useState("");
 
   // Sequential field progression: always start on "name"
   const [activeField, setActiveField] = useState("name");
@@ -146,7 +154,8 @@ export function LoginPage() {
   const nameValid = formName.trim().length > 0;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim());
   const verifyEmailValid = formVerifyEmail === formEmail && formEmail.length > 0;
-  const canSubmit = nameValid && emailValid && verifyEmailValid;
+  const secretValid = formSecret.length > 0;
+  const canSubmit = nameValid && emailValid && verifyEmailValid && secretValid;
 
   const isActive = (field) => activeField === field;
 
@@ -289,7 +298,7 @@ export function LoginPage() {
             </div>
             <div className="p-6 space-y-5">
               <p className="text-center text-xs" style={{ color: '#9090b0' }}>Fill in the form to sign up</p>
-              {['Name', 'Email', 'Verify Email'].map((label) => (
+              {['Name', 'Email', 'Verify Email', 'Secret'].map((label) => (
                 <div key={label} className="space-y-2">
                   <span className="text-xs text-primary block">{label}</span>
                   <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
@@ -398,7 +407,7 @@ export function LoginPage() {
                 />
               </div>
 
-              <form className="space-y-4" onSubmit={e => e.preventDefault()} autoComplete="off">
+              <form className="space-y-4" onSubmit={e => e.preventDefault()} autoComplete="off" style={{ '--ring': '#6366f1' }}>
                 {/* Name field */}
                 <div className="space-y-1 transition-opacity duration-200" style={{ opacity: isActive("name") ? 1 : 0.35 }}>
                   <Label htmlFor="name" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
@@ -463,6 +472,31 @@ export function LoginPage() {
                   />
                   {hasLooped && !verifyEmailValid && (
                     <p className="text-xs text-red-500">Emails don&apos;t match</p>
+                  )}
+                </div>
+
+                {/* Secret animal field */}
+                <div className="space-y-1 transition-opacity duration-200" style={{ opacity: isActive("secret") ? 1 : 0.35 }}>
+                  <Label htmlFor="secret" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
+                    <PawPrint className="w-4 h-4" />
+                    Secret
+                  </Label>
+                  <select
+                    id="secret"
+                    value={formSecret}
+                    onChange={(e) => handleFieldChange(setFormSecret, "secret", e.target.value, (v) => v.length > 0)}
+                    onKeyDown={handleInputKeyDown}
+                    disabled={!isActive("secret")}
+                    className="w-full bg-white/50 text-gray-900 border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6366f1] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
+                  >
+                    <option value="">Choose your spirit animal…</option>
+                    {ANIMALS.map(a => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                  {hasLooped && !secretValid && (
+                    <p className="text-xs text-red-500">Please choose an animal</p>
                   )}
                 </div>
 
