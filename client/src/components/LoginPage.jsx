@@ -1,9 +1,9 @@
 // ============================================================
 //  LoginPage.jsx
 //  Corporate login form with glitch transition to pixel-art game.
-//  Pre-game form uses clean glassmorphic design; typing triggers
-//  random glitch flashes of the game screen. On submit, transitions
-//  to pixel-art snake game.
+//  Pre-game form uses clean glassmorphic design; typing fills a
+//  decaying progress bar that triggers glitch flashes and advances
+//  the active field. On submit, transitions to pixel-art snake game.
 // ============================================================
 
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -13,33 +13,35 @@ import { useAudio } from "../hooks/useAudio.js";
 import { GameBoard } from "./GameBoard.jsx";
 import { InputOverlay } from "./InputOverlay.jsx";
 import { cn } from "./ui/utils.js";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "./ui/card.jsx";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card.jsx";
 import { Input } from "./ui/input.jsx";
 import { Label } from "./ui/label.jsx";
 import { Button } from "./ui/button.jsx";
-import { Lock, Mail, User, LogIn } from "lucide-react";
+import { Mail, User, LogIn } from "lucide-react";
 import { GRID_COLS, GRID_ROWS } from "../game/constants.js";
 
-const FIELD_NAMES = ["name", "email", "password"];
+// TODO: Rework all mentions of "password" in engine field labels (fields.js, engine.js,
+// draw.js, InputOverlay) from "Password"/"Verify Password" to "Email"/"Verify Email".
+// The progressive password rules gimmick should be moved to the email game field instead.
 
-function pickRandomField(exclude) {
-  const others = FIELD_NAMES.filter((f) => f !== exclude);
-  return others[Math.floor(Math.random() * others.length)];
-}
+const FIELD_ORDER = ["name", "email", "verifyEmail"];
+const BAR_FILL_PER_INPUT = 20;   // progress points added per keypress
+const BAR_DECAY_INTERVAL_MS = 100;
+const BAR_DECAY_AMOUNT = 1;       // points drained per interval tick
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { play: playAudio } = useAudio();
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
-  const [formPassword, setFormPassword] = useState("");
+  const [formVerifyEmail, setFormVerifyEmail] = useState("");
 
-  // Only one field is editable at a time — randomly selected
-  const [activeField, setActiveField] = useState(
-    () => FIELD_NAMES[Math.floor(Math.random() * FIELD_NAMES.length)]
-  );
+  // Sequential field progression: always start on "name"
+  const [activeField, setActiveField] = useState("name");
+  const activeFieldRef = useRef("name");
+  useEffect(() => { activeFieldRef.current = activeField; }, [activeField]);
 
-  // Play fahhhhh whenever the active field switches (skip first render)
+  // Play audio whenever the active field switches (skip first render)
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
@@ -55,18 +57,21 @@ export function LoginPage() {
   // Glitch flash state
   const [glitchFlash, setGlitchFlash] = useState(false);
   const glitchTimer = useRef(null);
-  const glitchPityCounter = useRef(0);
 
-  // Pixel-art reveal on submit (shows the "glitch" version properly before game starts)
+  // Decaying progress bar (0–100)
+  const [barProgress, setBarProgress] = useState(0);
+
+  // Show validation hints after the first loop-back (user has cycled through all fields)
+  const [hasLooped, setHasLooped] = useState(false);
+
+  // Pixel-art reveal on submit
   const [pixelReveal, setPixelReveal] = useState(false);
   const [pixelRevealFading, setPixelRevealFading] = useState(false);
   const pixelRevealTimer = useRef(null);
   const pixelRevealFadeTimer = useRef(null);
 
   const onComplete = useCallback(
-    (result) => {
-      navigate("/leaderboard", { state: result });
-    },
+    (result) => { navigate("/leaderboard", { state: result }); },
     [navigate],
   );
 
@@ -99,7 +104,6 @@ export function LoginPage() {
   const [inputRects, setInputRects] = useState(null);
   const [morphed, setMorphed] = useState(false);
 
-  // Trigger CSS transitions after morph divs are first painted
   useEffect(() => {
     if (morphing && inputRects) {
       requestAnimationFrame(() => {
@@ -109,23 +113,42 @@ export function LoginPage() {
     if (!morphing) setMorphed(false);
   }, [morphing, inputRects]);
 
-  const nameValid = formName.trim().length > 0;
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim());
-  const passwordValid = formPassword.length >= 1;
-  const canSubmit = nameValid && emailValid && passwordValid;
-
-  const isActive = (field) => activeField === field;
-
-  // Auto-focus the newly active field after a swap
+  // Bar decay: drain at a fixed rate while on the pre-game form
   useEffect(() => {
     if (started) return;
-    const fieldIdMap = { name: "name", email: "email", password: "password" };
-    const el = document.getElementById(fieldIdMap[activeField]);
-    if (el) {
-      // Small delay so the disabled attr is removed first
-      requestAnimationFrame(() => el.focus());
-    }
+    const id = setInterval(() => {
+      setBarProgress(p => Math.max(0, p - BAR_DECAY_AMOUNT));
+    }, BAR_DECAY_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [started]);
+
+  // Bar advance: when bar hits 100, trigger glitch flash and advance to the next field.
+  // On the last field (verifyEmail), loops back to "name".
+  useEffect(() => {
+    if (started || barProgress < 100) return;
+    setBarProgress(0);
+    const currentIdx = FIELD_ORDER.indexOf(activeFieldRef.current);
+    const nextIdx = (currentIdx + 1) % FIELD_ORDER.length;
+    if (nextIdx === 0) setHasLooped(true);
+    setGlitchFlash(true);
+    setActiveField(FIELD_ORDER[nextIdx]);
+    clearTimeout(glitchTimer.current);
+    glitchTimer.current = setTimeout(() => setGlitchFlash(false), 120);
+  }, [barProgress, started]);
+
+  // Auto-focus the active field after a swap
+  useEffect(() => {
+    if (started) return;
+    const el = document.getElementById(activeField);
+    if (el) requestAnimationFrame(() => el.focus());
   }, [activeField, started]);
+
+  const nameValid = formName.trim().length > 0;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim());
+  const verifyEmailValid = formVerifyEmail === formEmail && formEmail.length > 0;
+  const canSubmit = nameValid && emailValid && verifyEmailValid;
+
+  const isActive = (field) => activeField === field;
 
   function triggerShake() {
     setIsShaking(true);
@@ -133,16 +156,8 @@ export function LoginPage() {
     shakeTimer.current = setTimeout(() => setIsShaking(false), 150);
   }
 
-  function maybeGlitch() {
-    glitchPityCounter.current += 1;
-    if (Math.random() < 0.10 || glitchPityCounter.current >= 8) {
-      glitchPityCounter.current = 0;
-      setGlitchFlash(true);
-      // Swap active field to a different random one
-      setActiveField((prev) => pickRandomField(prev));
-      clearTimeout(glitchTimer.current);
-      glitchTimer.current = setTimeout(() => setGlitchFlash(false), 120);
-    }
+  function fillBar() {
+    setBarProgress(p => Math.min(100, p + BAR_FILL_PER_INPUT));
   }
 
   function checkFieldCompletion(fieldName, isValid) {
@@ -155,36 +170,40 @@ export function LoginPage() {
   function handleFieldChange(setter, fieldName, value, validator) {
     setter(value);
     triggerShake();
-    maybeGlitch();
+    fillBar();
     checkFieldCompletion(fieldName, validator(value));
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
+  // Enter key fills the bar (and prevents the form from submitting via keyboard)
+  function handleInputKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      fillBar();
+    }
+  }
+
+  function handleSubmit() {
     if (!canSubmit || started || pixelReveal) return;
 
-    // Measure actual form input positions NOW (while the form is still in the DOM)
     const cellW = window.innerWidth / GRID_COLS;
     const cellH = window.innerHeight / GRID_ROWS;
     const fields = engineRef.current?.fields;
 
     if (fields) {
-      const rects = ['name', 'email', 'password'].map((id, i) => {
+      // TODO: Once engine field labels are updated (password→email), update this mapping too.
+      const rects = ['name', 'email', 'verifyEmail'].map((id, i) => {
         const el = document.getElementById(id);
         const domRect = el?.getBoundingClientRect();
         const field = fields[i];
 
-        // Center the game field on the form input's center
         field.col = Math.round((domRect.left + domRect.width / 2) / cellW - field.width / 2);
         field.row = Math.round((domRect.top + domRect.height / 2) / cellH - field.height / 2);
 
         return {
-          // Start: match the form input exactly
           startLeft: domRect.left,
           startTop: domRect.top,
           startWidth: domRect.width,
           startHeight: domRect.height,
-          // Target: game field dimensions at the same grid position
           targetLeft: field.col * cellW,
           targetTop: field.row * cellH,
           targetWidth: field.width * cellW,
@@ -194,8 +213,6 @@ export function LoginPage() {
       });
 
       setInputRects(rects);
-
-      // Push updated positions to game state
       engineRef.current.onTick({
         snake: [...engineRef.current.snake],
         fields: engineRef.current.fields,
@@ -203,8 +220,6 @@ export function LoginPage() {
       });
     }
 
-    // Show the pixel-art version for 2.4s so the user can appreciate what the
-    // "glitches" were hinting at — fade out over the last 400ms, then morph
     setPixelReveal(true);
     setPixelRevealFading(false);
     clearTimeout(pixelRevealTimer.current);
@@ -226,9 +241,12 @@ export function LoginPage() {
       }
     : {};
 
+  // Bar colour: green → yellow → red as it fills
+  const barColor = barProgress < 40 ? '#4ade80' : barProgress < 70 ? '#facc15' : '#ef4444';
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      {/* ── Shake keyframes ── */}
+      {/* ── Shake & morph keyframes ── */}
       <style>{`
         @keyframes card-shake {
           0%, 100% { transform: translate(0, 0); }
@@ -246,11 +264,10 @@ export function LoginPage() {
 
       {/* ── Glitch flash / submit pixel-art reveal ── */}
       {(glitchFlash || pixelReveal) && !started && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4"
+        <div
+          className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4"
           style={{
             backgroundColor: '#1a1a2e',
-            // On proper reveal: fade out over 400ms once pixelRevealFading flips.
-            // Glitch flashes are hardcoded to no transition so they cut in/out.
             transition: pixelReveal ? 'opacity 400ms ease-in' : 'none',
             opacity: pixelRevealFading ? 0 : 1,
           }}
@@ -262,12 +279,9 @@ export function LoginPage() {
               backgroundSize: '20px 20px',
             }}
           />
-          {/* Pixel-art form replica */}
+          {/* Pixel-art form replica — TODO: update labels when engine fields are reworked */}
           <div className="w-full max-w-md pixel-bevel p-0 relative" style={{ backgroundColor: '#25253e', fontFamily: 'var(--font-pixel)' }}>
-            <div className="flex items-center px-3 py-2" style={{
-              backgroundColor: '#4ade80',
-              borderBottom: '3px solid #166534',
-            }}>
+            <div className="flex items-center px-3 py-2" style={{ backgroundColor: '#4ade80', borderBottom: '3px solid #166534' }}>
               <span className="text-xs font-bold" style={{ color: '#1a1a2e' }}>CREATE ACCOUNT</span>
               <div className="ml-auto flex gap-1">
                 <div className="w-3 h-3 pixel-bevel" style={{ backgroundColor: '#ef4444' }} />
@@ -275,7 +289,7 @@ export function LoginPage() {
             </div>
             <div className="p-6 space-y-5">
               <p className="text-center text-xs" style={{ color: '#9090b0' }}>Fill in the form to sign up</p>
-              {['Name', 'Email', 'Password'].map((label) => (
+              {['Name', 'Email', 'Verify Email'].map((label) => (
                 <div key={label} className="space-y-2">
                   <span className="text-xs text-primary block">{label}</span>
                   <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
@@ -283,11 +297,7 @@ export function LoginPage() {
                   </div>
                 </div>
               ))}
-              <div className="w-full py-2 px-4 pixel-bevel text-center text-xs font-bold" style={{
-                backgroundColor: '#3b3b5c',
-                color: '#6a6a8a',
-                opacity: 0.5,
-              }}>
+              <div className="w-full py-2 px-4 pixel-bevel text-center text-xs font-bold" style={{ backgroundColor: '#3b3b5c', color: '#6a6a8a', opacity: 0.5 }}>
                 SIGN UP
               </div>
             </div>
@@ -334,8 +344,6 @@ export function LoginPage() {
             fontFamily: 'var(--font-pixel)',
             fontSize: '0.625rem',
             color: '#4ade80',
-            // Position/size driven by transition; opacity driven by keyframe so it
-            // fades in from 0 and never pops in at full opacity.
             transition: 'left 1800ms ease-in-out, top 1800ms ease-in-out, width 1800ms ease-in-out, height 1800ms ease-in-out',
             animation: 'morph-fade 1800ms ease-in-out forwards',
             boxShadow: 'inset -2px -2px 0 #000, inset 2px 2px 0 #4a4a6a',
@@ -376,10 +384,23 @@ export function LoginPage() {
               <CardTitle className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'inherit', fontSize: '1.5rem', lineHeight: '1.4' }}>Create Account</CardTitle>
               <CardDescription className="text-gray-500" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>Fill in the form to get started</CardDescription>
             </CardHeader>
+
             <CardContent>
-              <form className="space-y-4" onSubmit={handleSubmit} autoComplete="off" style={{ '--ring': '#6366f1' }}>
+              {/* Decaying progress bar */}
+              <div className="mb-4 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${barProgress}%`,
+                    backgroundColor: barColor,
+                    transition: `width ${BAR_DECAY_INTERVAL_MS}ms linear, background-color 300ms ease`,
+                  }}
+                />
+              </div>
+
+              <form className="space-y-4" onSubmit={e => e.preventDefault()} autoComplete="off">
                 {/* Name field */}
-                <div className="space-y-2 transition-opacity duration-200" style={{ opacity: isActive("name") ? 1 : 0.35 }}>
+                <div className="space-y-1 transition-opacity duration-200" style={{ opacity: isActive("name") ? 1 : 0.35 }}>
                   <Label htmlFor="name" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
                     <User className="w-4 h-4" />
                     Name
@@ -389,18 +410,20 @@ export function LoginPage() {
                     type="text"
                     placeholder="Your name"
                     value={formName}
-                    onChange={(e) =>
-                      handleFieldChange(setFormName, "name", e.target.value, (v) => v.trim().length > 0)
-                    }
+                    onChange={(e) => handleFieldChange(setFormName, "name", e.target.value, (v) => v.trim().length > 0)}
+                    onKeyDown={handleInputKeyDown}
                     autoFocus={isActive("name")}
                     disabled={!isActive("name")}
                     className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
+                  {hasLooped && !nameValid && (
+                    <p className="text-xs text-red-500">Name cannot be empty</p>
+                  )}
                 </div>
 
                 {/* Email field */}
-                <div className="space-y-2 transition-opacity duration-200" style={{ opacity: isActive("email") ? 1 : 0.35 }}>
+                <div className="space-y-1 transition-opacity duration-200" style={{ opacity: isActive("email") ? 1 : 0.35 }}>
                   <Label htmlFor="email" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
                     <Mail className="w-4 h-4" />
                     Email
@@ -410,39 +433,42 @@ export function LoginPage() {
                     type="email"
                     placeholder="you@example.com"
                     value={formEmail}
-                    onChange={(e) =>
-                      handleFieldChange(setFormEmail, "email", e.target.value, (v) =>
-                        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
-                      )
-                    }
+                    onChange={(e) => handleFieldChange(setFormEmail, "email", e.target.value, (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()))}
+                    onKeyDown={handleInputKeyDown}
                     disabled={!isActive("email")}
                     className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
+                  {hasLooped && !emailValid && (
+                    <p className="text-xs text-red-500">Please enter a valid email</p>
+                  )}
                 </div>
 
-                {/* Password field */}
-                <div className="space-y-2 transition-opacity duration-200" style={{ opacity: isActive("password") ? 1 : 0.35 }}>
-                  <Label htmlFor="password" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
-                    <Lock className="w-4 h-4" />
-                    Password
+                {/* Verify Email field */}
+                <div className="space-y-1 transition-opacity duration-200" style={{ opacity: isActive("verifyEmail") ? 1 : 0.35 }}>
+                  <Label htmlFor="verifyEmail" className="text-gray-700 flex items-center gap-2" style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}>
+                    <Mail className="w-4 h-4" />
+                    Verify Email
                   </Label>
                   <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formPassword}
-                    onChange={(e) =>
-                      handleFieldChange(setFormPassword, "password", e.target.value, (v) => v.length >= 1)
-                    }
-                    disabled={!isActive("password")}
+                    id="verifyEmail"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={formVerifyEmail}
+                    onChange={(e) => handleFieldChange(setFormVerifyEmail, "verifyEmail", e.target.value, (v) => v === formEmail && formEmail.length > 0)}
+                    onKeyDown={handleInputKeyDown}
+                    disabled={!isActive("verifyEmail")}
                     className="bg-white/50 text-gray-900 placeholder:text-gray-400"
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
                   />
+                  {hasLooped && !verifyEmailValid && (
+                    <p className="text-xs text-red-500">Emails don&apos;t match</p>
+                  )}
                 </div>
 
                 <Button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={!canSubmit}
                   className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white"
                   style={{ fontFamily: 'inherit', fontSize: '0.875rem', borderRadius: '0.375rem' }}
@@ -520,7 +546,6 @@ export function LoginPage() {
         </div>
       )}
 
-      {/* Death countdown */}
       {deathCountdown != null && (
         <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
           <div style={{

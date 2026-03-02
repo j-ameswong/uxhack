@@ -370,9 +370,8 @@ Table: `submissions`
 ## TODO / Open Issues
 
 ### Nice to Haves
-- Snake smooth movement between grid cells (CSS transition)
-
-### Tomorrow's TODOs
-- **Validate Password shake missing on Play Again:** The card shake animation on the Validate Password field does not trigger when the game is launched via Play Again — only on first load. Investigate why the animation state isn't reset/retriggered on replay.
-- **Play Again score overwrite with personal best indicator:** If the same user completes the game again with a better score (matched by email hash), overwrite their leaderboard entry instead of inserting a new row. Show a "New Personal Best!" indicator on the completion screen when this happens.
+- ~~Rework signup form~~ ✅ Done — password replaced with Verify Email; sequential field progression (name→email→verifyEmail); decaying progress bar fills on keypresses and advances fields on full; loops back to name from last field; hints shown after first loop; submit locked until all valid
+- **TODO: Rework engine field labels** — all mentions of "Password" / "Verify Password" in `fields.js`, `engine.js`, `InputOverlay.jsx`, and the pixel-art glitch overlay in `LoginPage.jsx` should be updated to "Email" / "Verify Email". The progressive password rules gimmick (5 levels) should be moved to the email game field instead.
+- Fix countdown before game start
+- Match what the user typed earlier in the login form
 
