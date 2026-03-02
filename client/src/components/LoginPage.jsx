@@ -19,8 +19,6 @@ import { Input } from "./ui/input.jsx";
 import { Label } from "./ui/label.jsx";
 import { Button } from "./ui/button.jsx";
 import { Mail, User, LogIn, PawPrint } from "lucide-react";
-import { GRID_COLS, GRID_ROWS } from "../game/constants.js";
-import { FIELD_WIDTH, FIELD_HEIGHT, FIELD_MARGIN } from "../game/fields.js";
 
 const FRAME_COLORS = [
   { label: 'Gold',    value: '#ffd700' },
@@ -99,7 +97,6 @@ export function LoginPage() {
   }, []);
 
   const {
-    engineRef,
     gameState,
     deaths,
     started,
@@ -276,25 +273,6 @@ export function LoginPage() {
 
   function handleSubmit() {
     if (!canSubmit || started || pixelReveal || glitchFlash) return;
-
-    // Snap engine fields to the exact pixel positions of the form inputs so they
-    // emerge from behind the form layout rather than from approximate grid positions.
-    const engine = engineRef.current;
-    if (engine) {
-      const cellW = window.innerWidth / GRID_COLS;
-      const cellH = window.innerHeight / GRID_ROWS;
-      ['name', 'email', 'verifyEmail'].forEach((id, i) => {
-        const el = document.getElementById(id);
-        const field = engine.fields[i];
-        if (!el || !field) return;
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        field.col = Math.max(FIELD_MARGIN, Math.min(GRID_COLS - FIELD_WIDTH  - FIELD_MARGIN, Math.round(cx / cellW - FIELD_WIDTH  / 2)));
-        field.row = Math.max(FIELD_MARGIN, Math.min(GRID_ROWS - FIELD_HEIGHT - FIELD_MARGIN, Math.round(cy / cellH - FIELD_HEIGHT / 2)));
-      });
-      engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false });
-    }
 
     // Rapid glitch flickers (3×), then settle into the pixel-art form for 2s,
     // then cross-fade into the game — same as before from pixelReveal onward.
@@ -702,7 +680,7 @@ export function LoginPage() {
         const { rank, id, deaths: resultDeaths, timeMs, submitError } = gameResult;
         const isTop3 = rank != null && rank <= 3;
         return (
-          <div className="absolute inset-0 z-40 overflow-y-auto flex items-center justify-center p-4" style={{ backgroundColor: '#1a1a2e' }}>
+          <div className="absolute inset-0 z-40 overflow-y-auto flex items-start justify-center py-8 px-4" style={{ backgroundColor: '#1a1a2e' }}>
             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
               backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
               backgroundSize: '20px 20px',

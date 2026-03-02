@@ -23,7 +23,7 @@ const INNER_PERIMETER = (() => {
 const INNER_PERIM_IDX = new Map(
   INNER_PERIMETER.map((p, i) => [`${p.col},${p.row}`, i])
 );
-import { createInitialFields, createFormPositionFields, scatterFieldsToRandom, createVerifyField } from './fields.js';
+import { createFormPositionFields, scatterFieldsToRandom, createVerifyField } from './fields.js';
 
 const DIRECTIONS = {
   up: { col: 0, row: -1 },
@@ -69,8 +69,7 @@ export class GameEngine {
     this.capturedCount = 0;
     this.pendingGrowth = 0;
     this.tickRateMs = TICK_RATE_MS;
-    // Full reset: recreate all fields
-    this.fields = createInitialFields();
+    // Fields are managed externally by useSnakeGame — do not recreate here.
   }
 
   /** Reset snake position only — fields, captured state, and typed-char tail
@@ -237,7 +236,7 @@ export class GameEngine {
 
   /** Spawn the verify-password field after all 3 main fields are confirmed. */
   spawnVerifyField() {
-    this.fields.push(createVerifyField())
+    this.fields.push(createVerifyField(this.snake))
   }
 
   /** Add a labelled segment at the tail and mark it as permanent growth.

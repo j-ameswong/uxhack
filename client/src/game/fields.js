@@ -161,22 +161,35 @@ export class Field {
 }
 
 /**
+ * Returns true if a field rect (col, row, w, h) overlaps any snake segment.
+ */
+function overlapsSnake(col, row, w, h, snake) {
+  if (!snake || snake.length === 0) return false
+  return snake.some(seg =>
+    seg.col >= col && seg.col < col + w &&
+    seg.row >= row && seg.row < row + h
+  )
+}
+
+/**
  * Create the bonus "Verify Password" field at a random position.
  * Called after all three initial fields are captured and confirmed.
+ * @param {Array} snake - Current snake segments to avoid spawning on top of.
  */
-export function createVerifyField() {
+export function createVerifyField(snake = []) {
   const centerCol = Math.floor(GRID_COLS / 2)
   const centerRow = Math.floor(GRID_ROWS / 2)
   const avoidRadius = 6
   let col, row, attempts = 0
   do {
-    col = FIELD_MARGIN + Math.floor(Math.random() * (GRID_COLS - 2 * FIELD_MARGIN - FIELD_WIDTH))
-    row = FIELD_MARGIN + Math.floor(Math.random() * (GRID_ROWS - 2 * FIELD_MARGIN - FIELD_HEIGHT))
+    col = FIELD_MARGIN + Math.floor(Math.random() * (GRID_COLS - 2 * FIELD_MARGIN - VERIFY_FIELD_WIDTH))
+    row = FIELD_MARGIN + Math.floor(Math.random() * (GRID_ROWS - 2 * FIELD_MARGIN - VERIFY_FIELD_HEIGHT))
     attempts++
-    if (attempts > 50) break
+    if (attempts > 100) break
   } while (
-    Math.abs(col + FIELD_WIDTH / 2 - centerCol) < avoidRadius &&
-    Math.abs(row + FIELD_HEIGHT / 2 - centerRow) < avoidRadius
+    (Math.abs(col + VERIFY_FIELD_WIDTH / 2 - centerCol) < avoidRadius &&
+     Math.abs(row + VERIFY_FIELD_HEIGHT / 2 - centerRow) < avoidRadius) ||
+    overlapsSnake(col, row, VERIFY_FIELD_WIDTH, VERIFY_FIELD_HEIGHT, snake)
   )
   const f = new Field({ col, row, label: 'Verify Password' })
   f.width = VERIFY_FIELD_WIDTH
@@ -217,18 +230,16 @@ export function createInitialFields() {
 }
 
 /**
- * Create three fields at form-like positions — centered and stacked vertically,
- * mimicking the login form layout. Used as starting positions for the scatter animation.
+ * Create three fields all stacked at the grid center — the starting point
+ * for the scatter animation, from which they spiral out to random positions.
  */
 export function createFormPositionFields() {
-  const centerCol = Math.floor(GRID_COLS / 2) - Math.floor(FIELD_WIDTH / 2)
-  const centerRow = Math.floor(GRID_ROWS / 2)
-  const spacing = 3 // vertical spacing between fields in grid cells
+  const col = Math.floor(GRID_COLS / 2) - Math.floor(FIELD_WIDTH / 2)
+  const row = Math.floor(GRID_ROWS / 2) - Math.floor(FIELD_HEIGHT / 2)
 
   const labels = ['Name', 'Email', 'Password']
-  return labels.map((label, i) => {
-    const row = centerRow - spacing + (i * spacing)
-    const field = new Field({ col: centerCol, row, label })
+  return labels.map((label) => {
+    const field = new Field({ col, row, label })
     if (label === 'Password') field.locked = true
     return field
   })
@@ -237,9 +248,11 @@ export function createFormPositionFields() {
 /**
  * Generate well-spaced random target positions for the given fields.
  * Returns an array of { col, row } objects (one per field).
- * Positions are far from each other and from the grid centre (snake spawn).
+ * Positions avoid the snake, the grid centre, and each other.
+ * @param {Array} fields
+ * @param {Array} snake - Current snake segments to avoid.
  */
-export function generateSpacedPositions(fields) {
+export function generateSpacedPositions(fields, snake = []) {
   const centerCol = Math.floor(GRID_COLS / 2)
   const centerRow = Math.floor(GRID_ROWS / 2)
   const avoidRadius = 18
@@ -268,6 +281,9 @@ export function generateSpacedPositions(fields) {
 
       // Avoid snake spawn area
       if (Math.sqrt((cx - centerCol) ** 2 + (cy - centerRow) ** 2) < avoidRadius) continue
+
+      // Avoid the actual snake body
+      if (overlapsSnake(col, row, fw, fh, snake)) continue
 
       // Ensure minimum distance from already-placed fields
       let tooClose = false

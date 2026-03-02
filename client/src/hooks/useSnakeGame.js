@@ -251,7 +251,7 @@ export function useSnakeGame({ onComplete } = {}) {
     playAudio('scatter')
 
     const starts = engine.fields.map(f => ({ col: f.col, row: f.row }))
-    const targets = generateSpacedPositions(engine.fields)
+    const targets = generateSpacedPositions(engine.fields, engine.snake)
     const startTime = performance.now()
 
     function animateSpiral(now) {
