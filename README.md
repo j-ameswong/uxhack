@@ -2,6 +2,15 @@
 
 > Submission for the UXHack 2026 Hackathon
 
+> !!! Made with the assistance of Claude Code
+
+![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white&labelColor=20232a)
+![Vite](https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white&labelColor=1a1a2e)
+![Node.js](https://img.shields.io/badge/Node.js-Express_5-339933?logo=node.js&logoColor=white&labelColor=1a1a2e)
+![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003b57?logo=sqlite&logoColor=white&labelColor=1a1a2e)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss&logoColor=white&labelColor=1a1a2e)
+![Theme](https://img.shields.io/badge/Theme-Counter--Intuitive-4ade80?labelColor=1a1a2e)
+
 ---
 
 SnekUp is a counter-intuitive sign-up experience. You land on what looks like a ~~completely~~ normal registration form  - but you quickly realize there's a gimmick, and the moment you try to submit it, the fields run away!
@@ -21,12 +30,12 @@ It's a sign-up form that's-- hear me out--  also a snake game!
 
 ## The Flow
 
-1. **Landing** — a normal-looking marketing page. Send this to someone not in the know as a prank
-2. **Pre-game form** (`/signup`) — a glossy, totally innocent sign-up card. One field active at a time. The card shakes when you type. Something is wrong.
-3. **The reveal** — click the password field. The form dissolves. Fields scatter in all directions. The game begins.
-4. **The game** — steer the snake with arrow keys or WASD. Fields flee when you get close. Catch them to fill them in. Miss and lose time.
-5. **Verify Password** — once Name, Email, and Password are captured, a "Verify Password" field spawns at full throttle. One last chase.
-6. **The leaderboard** — your time, your deaths, your rank. Edit your display name once. Pick a frame colour. Top 3 get an animated dual-gradient border and a rainbow name.
+1. A normal-looking marketing page. Send this to someone who's clueless
+2. `/signup`: a glossy, totally innocent sign-up card. One field active at a time. The card shakes when you type. Something is wrong.
+3. Click the submit button -> The form dissolves. Fields scatter in all directions. The game begins.
+4. Steer the snake with arrow keys or WASD. Fields bounce like DVD screensavers and the password field runs away until you catch the other fields. You have to catch them to fill them in.
+5. Once Name, Email, and Password are captured, a "Verify Password" field spawns at max speed.
+6. Your time, deaths, and rank is saved to a persistent leaderboard. You can edit your display name once and pick a frame colour; the top 3 get an animated dual-gradient border and a rainbow name.
 
 ---
 
