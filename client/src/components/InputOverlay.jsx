@@ -6,17 +6,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { cn } from './ui/utils.js'
 
-const VALIDATORS = {
-  Name: (v) => (v.trim().length > 0 ? null : 'Name is required'),
-  Email: (v) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return re.test(v.trim()) ? null : 'Enter a valid email'
-  },
-}
-
 /**
  * Progressive password rules — revealed one at a time.
- * Each rule is { test, message }.
+ * The secret-animal rule is prepended dynamically inside the component.
  */
 const PASSWORD_RULES = [
   {
@@ -57,7 +49,17 @@ const PASSWORD_RULES = [
   },
 ]
 
-export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailedValidation, storedPassword }) {
+export function InputOverlay({
+  field,
+  onConfirm,
+  onCancel,
+  onCharTyped,
+  onFailedValidation,
+  storedPassword,
+  loginName = '',
+  loginEmail = '',
+  loginSecret = '',
+}) {
   const [value, setValue] = useState('')
   const [error, setError] = useState(null)
   const [passwordLevel, setPasswordLevel] = useState(0)
@@ -76,9 +78,43 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
     }
   }, [field])
 
+  // Build the active password rule set: secret rule prepended if available
+  const activePasswordRules = (() => {
+    if (!loginSecret) return PASSWORD_RULES
+    const reversed = loginSecret.split('').reverse().join('').toLowerCase()
+    return [
+      {
+        test: (v) => v.toLowerCase().includes(reversed),
+        message: `Must contain your spirit animal, backwards`,
+      },
+      ...PASSWORD_RULES,
+    ]
+  })()
+
+  // Validators for Name and Email — match login form values (case-insensitive)
+  function validate(label, v) {
+    if (label === 'Name') {
+      if (loginName) {
+        return v.trim().toLowerCase() === loginName.trim().toLowerCase()
+          ? null
+          : 'Name does not match'
+      }
+      return v.trim().length > 0 ? null : 'Name is required'
+    }
+    if (label === 'Email') {
+      if (loginEmail) {
+        return v.trim().toLowerCase() === loginEmail.trim().toLowerCase()
+          ? null
+          : 'Email does not match'
+      }
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      return re.test(v.trim()) ? null : 'Enter a valid email'
+    }
+    return null
+  }
+
   function handleChange(e) {
     const newVal = e.target.value
-    // Detect added characters (typed, not deleted)
     if (newVal.length > value.length) {
       const added = newVal.slice(value.length)
       for (const ch of added) {
@@ -110,7 +146,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
     if (isPassword) {
       // Check all rules up to and including the current level
       for (let i = 0; i <= passwordLevel; i++) {
-        const rule = PASSWORD_RULES[i]
+        const rule = activePasswordRules[i]
         if (!rule.test(value)) {
           setError(`Rule ${i + 1}: ${rule.message}`)
           setValue('')
@@ -119,9 +155,9 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
         }
       }
       // Current level passed — reveal next rule or accept
-      if (passwordLevel < PASSWORD_RULES.length - 1) {
+      if (passwordLevel < activePasswordRules.length - 1) {
         const nextLevel = passwordLevel + 1
-        const nextRule = PASSWORD_RULES[nextLevel]
+        const nextRule = activePasswordRules[nextLevel]
         if (!nextRule.test(value)) {
           setPasswordLevel(nextLevel)
           setError(`Rule ${nextLevel + 1}: ${nextRule.message}`)
@@ -131,18 +167,17 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
         }
         // Might pass multiple new rules at once — keep checking
         let level = nextLevel
-        while (level < PASSWORD_RULES.length - 1) {
+        while (level < activePasswordRules.length - 1) {
           level++
-          if (!PASSWORD_RULES[level].test(value)) {
+          if (!activePasswordRules[level].test(value)) {
             setPasswordLevel(level)
-            setError(`Rule ${level + 1}: ${PASSWORD_RULES[level].message}`)
+            setError(`Rule ${level + 1}: ${activePasswordRules[level].message}`)
             setValue('')
             onFailedValidation?.()
             return
           }
         }
-        // All rules passed
-        setPasswordLevel(PASSWORD_RULES.length - 1)
+        setPasswordLevel(activePasswordRules.length - 1)
       }
       // All rules passed — confirm
       onConfirm?.(field, value.trim())
@@ -153,8 +188,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
     }
 
     // Name / Email
-    const validator = VALIDATORS[field?.label]
-    const err = validator ? validator(value) : null
+    const err = validate(field?.label, value)
     setError(err)
     if (!err) {
       onConfirm?.(field, value.trim())
@@ -198,7 +232,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
           </span>
           {isPassword && (
             <span className="ml-auto" style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.4rem', color: '#e0e0e0' }}>
-              RULES: {rulesRevealed}/{PASSWORD_RULES.length}
+              RULES: {rulesRevealed}/{activePasswordRules.length}
             </span>
           )}
         </div>
@@ -210,15 +244,15 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
           <div className="pixel-bevel-inset p-2" style={{ backgroundColor: '#1a1a2e' }}>
             <input
               ref={inputRef}
-              type={field.label === 'Password' || field.label === 'Verify Password' ? 'password' : 'text'}
+              type={isPassword || isVerify ? 'password' : 'text'}
               autoComplete="off"
               value={value}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder={
-                field.label === 'Password'
+                isPassword
                   ? 'good luck...'
-                  : field.label === 'Verify Password'
+                  : isVerify
                     ? 're-enter password'
                     : ''
               }
@@ -231,7 +265,7 @@ export function InputOverlay({ field, onConfirm, onCancel, onCharTyped, onFailed
           {/* Revealed password rules checklist */}
           {isPassword && rulesRevealed > 0 && (
             <div className="space-y-1">
-              {PASSWORD_RULES.slice(0, rulesRevealed).map((rule, i) => {
+              {activePasswordRules.slice(0, rulesRevealed).map((rule, i) => {
                 const passed = rule.test(value)
                 return (
                   <div key={i} className="flex items-center gap-2" style={{

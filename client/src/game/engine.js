@@ -45,8 +45,26 @@ export class GameEngine {
     this.capturedCount = 0;
     this.pendingGrowth = 0;
     this.tickRateMs = TICK_RATE_MS;
-    // Scatter fields to new random positions on death (Stage 3+)
+    // Full reset: recreate all fields
     this.fields = createInitialFields();
+  }
+
+  /** Reset snake position only — fields and captured state are preserved.
+   *  Used on death so the player doesn't lose progress on already-captured fields. */
+  _resetSnakeOnly() {
+    const centreCol = Math.floor(GRID_COLS / 2);
+    const centreRow = Math.floor(GRID_ROWS / 2);
+    this.snake = [
+      { col: centreCol - 2, row: centreRow },
+      { col: centreCol - 1, row: centreRow },
+      { col: centreCol, row: centreRow },
+    ];
+    this.direction = 'right';
+    this.nextDirection = null;
+    this.pendingGrowth = 0;
+    // Recalculate capturedCount and tick rate from surviving captured fields
+    this.capturedCount = this.fields.filter(f => f.captured).length;
+    this.tickRateMs = Math.max(20, TICK_RATE_MS - this.capturedCount * TICK_RATE_INCREASE_MS);
   }
 
   setDirection(dir) {
@@ -107,7 +125,7 @@ export class GameEngine {
     if (this._isWallCollision(newHead) || this._isSelfCollision(newHead)) {
       this.stop(); // Stop engine immediately — countdown will restart it
       this.onDeath();
-      this._resetSnake();
+      this._resetSnakeOnly(); // Preserve captured fields; only reset snake position
       const state = { snake: [...this.snake], fields: this.fields, gameOver: true };
       this.onTick(state);
       return state;

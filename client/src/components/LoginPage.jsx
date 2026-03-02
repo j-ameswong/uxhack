@@ -3,7 +3,8 @@
 //  Corporate login form with glitch transition to pixel-art game.
 //  Pre-game form uses clean glassmorphic design; typing fills a
 //  decaying progress bar that triggers glitch flashes and advances
-//  the active field. On submit, transitions to pixel-art snake game.
+//  the active field sequentially. On submit, transitions to the
+//  pixel-art snake game via a field fade-in + scatter animation.
 // ============================================================
 
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -18,23 +19,22 @@ import { Input } from "./ui/input.jsx";
 import { Label } from "./ui/label.jsx";
 import { Button } from "./ui/button.jsx";
 import { Mail, User, LogIn, PawPrint } from "lucide-react";
-import { GRID_COLS, GRID_ROWS } from "../game/constants.js";
 
 // TODO: Rework all mentions of "password" in engine field labels (fields.js, engine.js,
-// draw.js, InputOverlay) from "Password"/"Verify Password" to "Email"/"Verify Email".
+// InputOverlay) from "Password"/"Verify Password" to "Email"/"Verify Email".
 // The progressive password rules gimmick should be moved to the email game field instead.
 // TODO: Wire the "secret" animal selection into the game engine rework.
 
 const FIELD_ORDER = ["name", "email", "verifyEmail", "secret"];
+const BAR_FILL_PER_INPUT = 20;   // progress points added per keypress
+const BAR_DECAY_INTERVAL_MS = 100;
+const BAR_DECAY_AMOUNT = 1;       // points drained per interval tick
 
 const ANIMALS = [
   "Axolotl", "Capybara", "Cassowary", "Dingo", "Echidna",
   "Fennec Fox", "Honey Badger", "Komodo Dragon", "Mantis Shrimp",
   "Narwhal", "Okapi", "Pangolin", "Quokka", "Tapir", "Wombat",
 ];
-const BAR_FILL_PER_INPUT = 20;   // progress points added per keypress
-const BAR_DECAY_INTERVAL_MS = 100;
-const BAR_DECAY_AMOUNT = 1;       // points drained per interval tick
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -90,7 +90,7 @@ export function LoginPage() {
     started,
     scattering,
     cardFading,
-    morphing,
+    fieldsFadingIn,
     deathCountdown,
     verifyAppearing,
     capturedField,
@@ -101,25 +101,13 @@ export function LoginPage() {
     penaltyFlash,
     penaltyAmount,
     tickRate,
+    showInputCountdown,
     beginGame,
     handleInputConfirm,
     handleCharTyped,
     handleFailedValidation,
     getFieldValue,
   } = useSnakeGame({ onComplete });
-
-  // Morph animation: form inputs transition into game fields
-  const [inputRects, setInputRects] = useState(null);
-  const [morphed, setMorphed] = useState(false);
-
-  useEffect(() => {
-    if (morphing && inputRects) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setMorphed(true));
-      });
-    }
-    if (!morphing) setMorphed(false);
-  }, [morphing, inputRects]);
 
   // Bar decay: drain at a fixed rate while on the pre-game form
   useEffect(() => {
@@ -131,7 +119,7 @@ export function LoginPage() {
   }, [started]);
 
   // Bar advance: when bar hits 100, trigger glitch flash and advance to the next field.
-  // On the last field (verifyEmail), loops back to "name".
+  // On the last field (secret), loops back to "name".
   useEffect(() => {
     if (started || barProgress < 100) return;
     setBarProgress(0);
@@ -183,7 +171,7 @@ export function LoginPage() {
     checkFieldCompletion(fieldName, validator(value));
   }
 
-  // Enter key fills the bar (and prevents the form from submitting via keyboard)
+  // Enter key fills the bar (and prevents keyboard form submission)
   function handleInputKeyDown(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -194,41 +182,7 @@ export function LoginPage() {
   function handleSubmit() {
     if (!canSubmit || started || pixelReveal) return;
 
-    const cellW = window.innerWidth / GRID_COLS;
-    const cellH = window.innerHeight / GRID_ROWS;
-    const fields = engineRef.current?.fields;
-
-    if (fields) {
-      // TODO: Once engine field labels are updated (password→email), update this mapping too.
-      const rects = ['name', 'email', 'verifyEmail'].map((id, i) => {
-        const el = document.getElementById(id);
-        const domRect = el?.getBoundingClientRect();
-        const field = fields[i];
-
-        field.col = Math.round((domRect.left + domRect.width / 2) / cellW - field.width / 2);
-        field.row = Math.round((domRect.top + domRect.height / 2) / cellH - field.height / 2);
-
-        return {
-          startLeft: domRect.left,
-          startTop: domRect.top,
-          startWidth: domRect.width,
-          startHeight: domRect.height,
-          targetLeft: field.col * cellW,
-          targetTop: field.row * cellH,
-          targetWidth: field.width * cellW,
-          targetHeight: field.height * cellH,
-          label: field.label,
-        };
-      });
-
-      setInputRects(rects);
-      engineRef.current.onTick({
-        snake: [...engineRef.current.snake],
-        fields: engineRef.current.fields,
-        gameOver: false,
-      });
-    }
-
+    // Show the pixel-art version for 2.4s, then begin the fade-in + scatter sequence
     setPixelReveal(true);
     setPixelRevealFading(false);
     clearTimeout(pixelRevealTimer.current);
@@ -237,7 +191,7 @@ export function LoginPage() {
     pixelRevealTimer.current = setTimeout(() => {
       setPixelReveal(false);
       setPixelRevealFading(false);
-      beginGame();
+      beginGame({ name: formName, email: formEmail, secret: formSecret });
     }, 2400);
   }
 
@@ -255,7 +209,7 @@ export function LoginPage() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      {/* ── Shake & morph keyframes ── */}
+      {/* ── Keyframes ── */}
       <style>{`
         @keyframes card-shake {
           0%, 100% { transform: translate(0, 0); }
@@ -264,10 +218,13 @@ export function LoginPage() {
           60% { transform: translate(var(--shake-x), calc(var(--shake-y) * 0.5)); }
           80% { transform: translate(calc(var(--shake-x) * -0.5), calc(var(--shake-y) * -1)); }
         }
-        @keyframes morph-fade {
-          0%   { opacity: 0; }
-          20%  { opacity: 0.75; }
-          100% { opacity: 0; }
+        @keyframes field-appear {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes countdown-sweep {
+          from { stroke-dashoffset: 0; }
+          to   { stroke-dashoffset: 100; }
         }
       `}</style>
 
@@ -314,8 +271,8 @@ export function LoginPage() {
         </div>
       )}
 
-      {/* ── Dark game background — visible during morph, scatter, and game ── */}
-      {(morphing || scattering || started) && (
+      {/* ── Dark game background — visible while card fades, fields fade in, scatter, and game ── */}
+      {(cardFading || fieldsFadingIn || scattering || started) && (
         <div className="absolute inset-0" style={{ backgroundColor: '#1a1a2e' }}>
           <div
             className="absolute inset-0 opacity-10 pointer-events-none"
@@ -327,43 +284,19 @@ export function LoginPage() {
         </div>
       )}
 
-      {/* ── GameBoard with fields at form positions — visible during morph + scatter ── */}
-      {(morphing || scattering) && !started && (
+      {/* ── GameBoard: fields fade in then scatter ── */}
+      {(fieldsFadingIn || scattering) && !started && (
         <GameBoard
           gameState={gameState}
           showSnake={false}
           animateFields={false}
+          fieldsFadingIn={fieldsFadingIn}
           className="absolute inset-0 z-[5] bg-transparent"
         />
       )}
 
-      {/* ── Morph divs: pixel-art inputs flying to game field positions ── */}
-      {morphing && inputRects && inputRects.map((r, i) => (
-        <div
-          key={`morph-${i}`}
-          className="absolute z-20 flex items-center justify-center pointer-events-none select-none"
-          style={{
-            left: morphed ? r.targetLeft : r.startLeft,
-            top: morphed ? r.targetTop : r.startTop,
-            width: morphed ? r.targetWidth : r.startWidth,
-            height: morphed ? r.targetHeight : r.startHeight,
-            backgroundColor: '#1a1a2e',
-            borderRadius: '0px',
-            border: 'none',
-            fontFamily: 'var(--font-pixel)',
-            fontSize: '0.625rem',
-            color: '#4ade80',
-            transition: 'left 1800ms ease-in-out, top 1800ms ease-in-out, width 1800ms ease-in-out, height 1800ms ease-in-out',
-            animation: 'morph-fade 1800ms ease-in-out forwards',
-            boxShadow: 'inset -2px -2px 0 #000, inset 2px 2px 0 #4a4a6a',
-          }}
-        >
-          <span className="truncate px-2">{r.label}</span>
-        </div>
-      ))}
-
       {/* ── Pre-game: Corporate glassmorphic login form ── */}
-      {!started && !scattering && !pixelReveal && (
+      {!started && !scattering && !pixelReveal && !fieldsFadingIn && (
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center z-10 p-4 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100",
@@ -371,8 +304,6 @@ export function LoginPage() {
           )}
           style={{
             fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-            opacity: morphing ? 0 : 1,
-            transition: morphing ? 'opacity 1800ms ease-in-out' : 'none',
           }}
         >
           {/* Animated background blobs */}
@@ -565,7 +496,35 @@ export function LoginPage() {
         onCharTyped={handleCharTyped}
         onFailedValidation={handleFailedValidation}
         storedPassword={getFieldValue("Password")}
+        loginName={formName}
+        loginEmail={formEmail}
+        loginSecret={formSecret}
       />
+
+      {/* Post-input circular countdown (1 s) */}
+      {showInputCountdown && started && (
+        <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
+          <svg
+            viewBox="0 0 40 40"
+            width="80"
+            height="80"
+            style={{ transform: 'rotate(-90deg)' }}
+          >
+            <circle
+              cx="20"
+              cy="20"
+              r="15.9"
+              fill="none"
+              stroke="rgba(74,222,128,0.85)"
+              strokeWidth="2.5"
+              strokeDasharray="100"
+              strokeDashoffset="0"
+              strokeLinecap="round"
+              style={{ animation: 'countdown-sweep 1s linear forwards' }}
+            />
+          </svg>
+        </div>
+      )}
 
       {showFailed && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-30" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
