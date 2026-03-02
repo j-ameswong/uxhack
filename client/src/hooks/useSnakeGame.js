@@ -216,7 +216,6 @@ export function useSnakeGame({ onComplete } = {}) {
     return () => clearTimeout(t)
   }, [showTooltip])
 
-  const CARD_FADE_MS = 500        // login card fades out
   const FIELD_FADE_IN_MS = 1000   // fields fade in at form positions
   const SPIRAL_DURATION_MS = 2000
   const SPIRAL_ROTATIONS = 2
@@ -226,85 +225,83 @@ export function useSnakeGame({ onComplete } = {}) {
     loginValuesRef.current = { name: '', email: '', secret: '', ...loginValues }
     setTickRate(TICK_RATE_MS)
 
-    // Phase 1: fade out the login card
+    // Phase 1: fields fade in immediately at their current (form) positions.
+    // cardFading shows the dark background; fieldsFadingIn hides the login form
+    // div so it can't flash back during the pixel-overlay cross-fade.
     setCardFading(true)
+    setFieldsFadingIn(true)
 
-    // Phase 2: card gone — fields fade in at their current (form) positions
+    // Phase 2: fade complete — begin scatter animation
     setTimeout(() => {
       setCardFading(false)
-      setFieldsFadingIn(true)
+      setFieldsFadingIn(false)
+      setScattering(true)
 
-      // Phase 3: fade complete — begin scatter animation
-      setTimeout(() => {
-        setFieldsFadingIn(false)
-        setScattering(true)
+      const engine = engineRef.current
+      if (!engine) return
 
-        const engine = engineRef.current
-        if (!engine) return
+      playAudio('scatter')
 
-        playAudio('scatter')
+      const starts = engine.fields.map(f => ({ col: f.col, row: f.row }))
+      const targets = generateSpacedPositions(engine.fields)
+      const startTime = performance.now()
 
-        const starts = engine.fields.map(f => ({ col: f.col, row: f.row }))
-        const targets = generateSpacedPositions(engine.fields)
-        const startTime = performance.now()
+      function animateSpiral(now) {
+        const elapsed = now - startTime
+        const rawT = Math.min(elapsed / SPIRAL_DURATION_MS, 1)
+        const t = rawT * rawT * rawT * rawT * rawT // ease-in quintic
 
-        function animateSpiral(now) {
-          const elapsed = now - startTime
-          const rawT = Math.min(elapsed / SPIRAL_DURATION_MS, 1)
-          const t = rawT * rawT * rawT * rawT * rawT // ease-in quintic
+        for (let i = 0; i < engine.fields.length; i++) {
+          const field = engine.fields[i]
+          if (field.captured) continue
 
-          for (let i = 0; i < engine.fields.length; i++) {
-            const field = engine.fields[i]
-            if (field.captured) continue
+          const s = starts[i]
+          const e = targets[i]
+          const dx = e.col - s.col
+          const dy = e.row - s.row
+          const dist = Math.sqrt(dx * dx + dy * dy)
 
-            const s = starts[i]
-            const e = targets[i]
-            const dx = e.col - s.col
-            const dy = e.row - s.row
-            const dist = Math.sqrt(dx * dx + dy * dy)
+          const baseCol = s.col + t * dx
+          const baseRow = s.row + t * dy
 
-            const baseCol = s.col + t * dx
-            const baseRow = s.row + t * dy
+          const amplitude = Math.max(6, dist * SPIRAL_AMPLITUDE)
+          const envelope = Math.sin(rawT * Math.PI)
+          const angle = rawT * SPIRAL_ROTATIONS * 2 * Math.PI
 
-            const amplitude = Math.max(6, dist * SPIRAL_AMPLITUDE)
-            const envelope = Math.sin(rawT * Math.PI)
-            const angle = rawT * SPIRAL_ROTATIONS * 2 * Math.PI
+          const newCol = baseCol + amplitude * envelope * Math.cos(angle)
+          const newRow = baseRow + amplitude * envelope * Math.sin(angle)
 
-            const newCol = baseCol + amplitude * envelope * Math.cos(angle)
-            const newRow = baseRow + amplitude * envelope * Math.sin(angle)
-
-            field.col = Math.max(0, Math.min(GRID_COLS - field.width, newCol))
-            field.row = Math.max(0, Math.min(GRID_ROWS - field.height, newRow))
-          }
-
-          engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
-
-          if (rawT < 1) {
-            requestAnimationFrame(animateSpiral)
-          } else {
-            // Snap to final integer positions
-            for (let i = 0; i < engine.fields.length; i++) {
-              engine.fields[i].col = Math.round(targets[i].col)
-              engine.fields[i].row = Math.round(targets[i].row)
-            }
-            engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
-
-            // Phase 4: 3-2-1 countdown then start
-            setScattering(false)
-            setStarted(true)
-            playAudio('countdown'); setDeathCountdown(3)
-            setTimeout(() => { playAudio('countdown'); setDeathCountdown(2) }, 1000)
-            setTimeout(() => { playAudio('countdown'); setDeathCountdown(1) }, 2000)
-            setTimeout(() => {
-              setDeathCountdown(null)
-              startGame()
-            }, 3000)
-          }
+          field.col = Math.max(0, Math.min(GRID_COLS - field.width, newCol))
+          field.row = Math.max(0, Math.min(GRID_ROWS - field.height, newRow))
         }
 
-        requestAnimationFrame(animateSpiral)
-      }, FIELD_FADE_IN_MS)
-    }, CARD_FADE_MS)
+        engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
+
+        if (rawT < 1) {
+          requestAnimationFrame(animateSpiral)
+        } else {
+          // Snap to final integer positions
+          for (let i = 0; i < engine.fields.length; i++) {
+            engine.fields[i].col = Math.round(targets[i].col)
+            engine.fields[i].row = Math.round(targets[i].row)
+          }
+          engine.onTick({ snake: [...engine.snake], fields: engine.fields, gameOver: false })
+
+          // Phase 3: 3-2-1 countdown then start
+          setScattering(false)
+          setStarted(true)
+          playAudio('countdown'); setDeathCountdown(3)
+          setTimeout(() => { playAudio('countdown'); setDeathCountdown(2) }, 1000)
+          setTimeout(() => { playAudio('countdown'); setDeathCountdown(1) }, 2000)
+          setTimeout(() => {
+            setDeathCountdown(null)
+            startGame()
+          }, 3000)
+        }
+      }
+
+      requestAnimationFrame(animateSpiral)
+    }, FIELD_FADE_IN_MS)
   }, [startGame, engineRef, playAudio])
 
   return {

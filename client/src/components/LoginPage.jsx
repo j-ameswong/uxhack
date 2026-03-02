@@ -182,16 +182,21 @@ export function LoginPage() {
   function handleSubmit() {
     if (!canSubmit || started || pixelReveal) return;
 
-    // Show the pixel-art version for 2.4s, then begin the fade-in + scatter sequence
+    // Show the pixel-art version for 2s, then start the game sequence simultaneously
+    // with the overlay fade-out so there is no gap where the login form reappears.
     setPixelReveal(true);
     setPixelRevealFading(false);
     clearTimeout(pixelRevealTimer.current);
     clearTimeout(pixelRevealFadeTimer.current);
-    pixelRevealFadeTimer.current = setTimeout(() => setPixelRevealFading(true), 2000);
+    pixelRevealFadeTimer.current = setTimeout(() => {
+      setPixelRevealFading(true);
+      // Begin game immediately — fieldsFadingIn hides the login form while the
+      // pixel overlay is still fading out (400 ms overlap, looks like a cross-fade).
+      beginGame({ name: formName, email: formEmail, secret: formSecret });
+    }, 2000);
     pixelRevealTimer.current = setTimeout(() => {
       setPixelReveal(false);
       setPixelRevealFading(false);
-      beginGame({ name: formName, email: formEmail, secret: formSecret });
     }, 2400);
   }
 
