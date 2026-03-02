@@ -5,6 +5,7 @@
 // ============================================================
 
 import { useRef, useState, useEffect } from 'react'
+import { Lock } from 'lucide-react'
 import { GRID_COLS, GRID_ROWS } from '../game/constants.js'
 import { cn } from './ui/utils.js'
 import { FireBorder } from './FireBorder.jsx'
@@ -102,7 +103,11 @@ export function GameBoard({ gameState, className, showSnake = true, animateField
               animation: fieldsFadingIn ? 'field-appear 1s ease-out forwards' : undefined,
             }}
           >
-            <span className="font-bold text-primary truncate px-2 drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)]">
+            <span
+              className="font-bold truncate px-2 drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)] flex items-center gap-1"
+              style={{ color: field.locked ? '#ef4444' : undefined }}
+            >
+              {field.locked && <Lock style={{ width: '0.7em', height: '0.7em', flexShrink: 0 }} />}
               {field.label}
             </span>
           </div>
