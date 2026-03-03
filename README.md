@@ -1,15 +1,21 @@
 # SnekUp
 
-> Submission for the UXHack 2026 Hackathon
-
-> !!! Made with the assistance of Claude Code
+> Submission for the [UXHack 2026 Hackathon](https://techvision-uxhack.devpost.com/?ref_feature=challenge&ref_medium=discover)
 
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white&labelColor=20232a)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white&labelColor=1a1a2e)
 ![Node.js](https://img.shields.io/badge/Node.js-Express_5-339933?logo=node.js&logoColor=white&labelColor=1a1a2e)
 ![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003b57?logo=sqlite&logoColor=white&labelColor=1a1a2e)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss&logoColor=white&labelColor=1a1a2e)
-![Theme](https://img.shields.io/badge/Theme-Counter--Intuitive-4ade80?labelColor=1a1a2e)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-555?logo=anthropic&logoColor=fff)](https://claude.ai/code)
+
+
+https://github.com/user-attachments/assets/9d6b67b2-40ea-4fee-8e4b-cb674dba622b
+
+| [Hackathons UK](https://www.hackathons.org.uk/) | [UoS Techvision Society](https://linktr.ee/techvisionsociety) |
+| - | - |
+| <img width="300" height="100" alt="image" src="https://github.com/user-attachments/assets/2afc2379-38fb-4852-bfe7-a78553b8a815" /> | <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/7b11e768-c1d5-4b8c-aa86-c0a9b9c5f06e" /> |
+
 
 ---
 
