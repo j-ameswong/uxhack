@@ -100,6 +100,7 @@ export function LoginPage() {
     gameState,
     deaths,
     started,
+    submitting,
     scattering,
     cardFading,
     fieldsFadingIn,
@@ -337,6 +338,10 @@ export function LoginPage() {
           from { opacity: 0; }
           to   { opacity: 1; }
         }
+        @keyframes pixel-dot-pulse {
+          0%, 100% { opacity: 0.2; transform: scaleY(0.6); }
+          50%       { opacity: 1;   transform: scaleY(1); }
+        }
       `}</style>
 
       {/* ── Glitch flash / submit pixel-art reveal ── */}
@@ -408,8 +413,31 @@ export function LoginPage() {
         />
       )}
 
+      {/* ── Submitting loading screen ── */}
+      {submitting && !gameResult && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
+          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
+            backgroundImage: 'linear-gradient(rgba(74,222,128,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.3) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }} />
+          <div className="pixel-bevel p-8 text-center flex flex-col items-center gap-4" style={{ backgroundColor: '#25253e' }}>
+            <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.625rem', color: '#4ade80' }}>
+              SUBMITTING...
+            </div>
+            <div className="flex gap-1">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="w-2 h-2 pixel-bevel" style={{
+                  backgroundColor: '#4ade80',
+                  animation: `pixel-dot-pulse 0.9s ease-in-out ${i * 0.3}s infinite`,
+                }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Pre-game: Corporate glassmorphic login form ── */}
-      {!started && !scattering && !pixelReveal && (
+      {!started && !scattering && !pixelReveal && !submitting && (
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center z-10 p-4 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100",

@@ -19,6 +19,7 @@ import { generateSpacedPositions, createFormPositionFields } from '../game/field
 export function useSnakeGame({ onComplete } = {}) {
   const [deaths, setDeaths] = useState(0)
   const [started, setStarted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [capturedField, setCapturedField] = useState(null)
   const [showTooltip, setShowTooltip] = useState(false)
   const [showFailed, setShowFailed] = useState(false)
@@ -161,6 +162,7 @@ export function useSnakeGame({ onComplete } = {}) {
     if (field.label === 'Verify Password') {
       engineRef.current?.stop()
       setStarted(false)
+      setSubmitting(true)
       const snapshot = {
         deaths: deathsRef.current,
         timeMs: elapsedMsRef.current,
@@ -188,6 +190,7 @@ export function useSnakeGame({ onComplete } = {}) {
       } catch {
         submitError = true
       }
+      setSubmitting(false)
       onComplete?.({ rank, submitError, ...snapshot })
       return
     }
@@ -337,6 +340,7 @@ export function useSnakeGame({ onComplete } = {}) {
     // Reset all UI state
     setDeaths(0)
     setStarted(false)
+    setSubmitting(false)
     setCapturedField(null)
     setShowTooltip(false)
     setShowFailed(false)
@@ -374,6 +378,7 @@ export function useSnakeGame({ onComplete } = {}) {
     gameState,
     deaths,
     started,
+    submitting,
     scattering,
     cardFading,
     fieldsFadingIn,
